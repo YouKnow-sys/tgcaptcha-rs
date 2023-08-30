@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use teloxide::{
     prelude::*,
-    types::{ChatPermissions, InlineKeyboardButton, InlineKeyboardMarkup, User},
+    types::{ChatPermissions, InlineKeyboardButton, InlineKeyboardMarkup, User}, utils::html::escape,
 };
 
 use crate::HandlerResult;
@@ -28,8 +28,8 @@ pub async fn join_handler(bot: Bot, msg: Message, users: Vec<User>) -> HandlerRe
                 "<b>{}</b>"
             ),
             user.url(),
-            user.full_name(),
-            msg.chat.title().unwrap_or("Unknown"),
+            escape(&user.full_name()),
+            escape(msg.chat.title().unwrap_or("Unknown")),
             question,
         );
 

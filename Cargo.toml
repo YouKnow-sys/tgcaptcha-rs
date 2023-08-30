@@ -1,0 +1,23 @@
+[package]
+name = "tgcaptcha-rs"
+authors = ["Saeid Ghafari <saeid025@yahoo.com>"]
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+log = { version = "0.4.20" }
+pretty_env_logger = { version = "0.5.0" }
+rand = "0.8.5"
+serde = { version = "1.0.188", features = ["derive"] }
+serde_json = { version = "1.0.105" }
+teloxide = { version = "0.12.2", features = ["macros"] }
+tokio = { version = "1.32.0", features = ["macros", "rt-multi-thread"] }
+
+[profile.release]
+codegen-units = 1
+lto = "fat"
+opt-level = "s"
+strip = true
+panic = "abort"

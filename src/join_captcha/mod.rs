@@ -39,7 +39,7 @@ pub async fn join_handler(
             .replace(
                 "{TAGUSER}",
                 &format!(
-                    "<a href=\"{}\">{}</a>\n",
+                    "<a href=\"{}\">{}</a>",
                     user.url(),
                     escape(&user.full_name())
                 ),

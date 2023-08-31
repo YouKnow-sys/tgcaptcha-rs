@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use serde::{Deserialize, Serialize};
 use teloxide::{
@@ -7,7 +7,8 @@ use teloxide::{
     utils::html::escape,
 };
 
-use crate::{config::AppConfig, HandlerResult};
+use crate::{config::AppConfig, HandlerResult, GroupDialogue, HandlerError, DialogueData};
+pub use math_captcha::Question;
 
 mod math_captcha;
 
@@ -21,16 +22,23 @@ struct CallBackData {
 pub async fn join_handler(
     bot: Bot,
     app_config: Arc<AppConfig>,
+    dialogue: GroupDialogue,
     msg: Message,
     users: Vec<User>,
 ) -> HandlerResult {
     let Some(chat_config) = app_config.allowed_chats.iter().find(|c| c.id == msg.chat.id) else {
         log::error!("Chat not found: {:?}", msg.chat);
+
+        bot.send_message(msg.chat.id, "This group isn't authorized. Goodbye!").await?;
+        bot.leave_chat(msg.chat.id).await?;
+
         return Ok(());
     };
 
     for user in users {
-        let (question, answers) = math_captcha::generate_captcha();
+        if user.is_bot { continue }
+
+        let (question, answers) = Question::generate_question();
 
         let welcome_msg = chat_config
             .messages
@@ -57,35 +65,40 @@ pub async fn join_handler(
 
         bot.restrict_chat_member(msg.chat.id, user.id, !ChatPermissions::SEND_MESSAGES)
             .await?;
-        bot.send_message(msg.chat.id, text)
+        let msg_id = bot.send_message(msg.chat.id, text)
             .parse_mode(teloxide::types::ParseMode::Html)
             .reply_to_message_id(msg.id)
             .reply_markup(InlineKeyboardMarkup::new([
                 answers
                     .into_iter()
                     .map(|a| {
-                        InlineKeyboardButton::callback(
-                            a.to_string(),
-                            serde_json::to_string(&CallBackData {
-                                data: question.to_owned(),
-                                btn_val: a,
-                                user_id: user.id,
-                            })
-                            .expect("Failed to serialize callback data"),
-                        )
+                        let a = a.to_string();
+                        InlineKeyboardButton::callback(a.clone(), a)
                     })
                     .collect(),
-                vec![InlineKeyboardButton::callback(
-                    &chat_config.messages.admin_approve,
-                    serde_json::to_string(&CallBackData {
-                        data: "admin_approve".to_owned(),
-                        btn_val: 0,
-                        user_id: user.id,
-                    })
-                    .expect("Failed to serialize callback data"),
-                )],
+                vec![InlineKeyboardButton::callback(&chat_config.messages.admin_approve, "admin_approve")],
             ]))
-            .await?;
+            .await?
+            .id;
+
+        let dialogue = dialogue.get()
+            .await?
+            .ok_or::<HandlerError>("Can't find group dialogue in memory".into())?;
+        dialogue.insert(msg_id, DialogueData::new(user.id, question));
+
+        tokio::spawn({
+            let bot = bot.clone();
+            let ban_after = chat_config.ban_after;
+            async move {
+                tokio::time::sleep(Duration::from_secs(ban_after)).await;
+                if let Some((_, data)) = dialogue.remove(&msg_id) {
+                    if !data.passed {
+                        bot.ban_chat_member(msg.chat.id, data.user_id).await.expect("Failed to ban memeber after timeout");
+                        bot.delete_message(msg.chat.id, msg_id).await.expect("Failed to delete msg after timeout");
+                    }
+                }
+            }
+        });
     }
 
     Ok(())
@@ -94,6 +107,7 @@ pub async fn join_handler(
 pub async fn callback_handler(
     bot: Bot,
     app_config: Arc<AppConfig>,
+    dialogue: GroupDialogue,
     q: CallbackQuery,
 ) -> HandlerResult {
     if let (Some(msg), Some(data)) = (q.message, q.data) {
@@ -101,9 +115,14 @@ pub async fn callback_handler(
             return Ok(());
         };
 
-        let callback_data: CallBackData = serde_json::from_str(&data)?;
+        let dlg_map = dialogue.get()
+            .await?
+            .ok_or::<HandlerError>("Can't find group dialogue in memory".into())?;
+        let mut dlg_data = dlg_map
+            .get_mut(&msg.id)
+            .ok_or::<HandlerError>("Can't find message id in group dialogue".into())?;
 
-        if callback_data.data == "admin_approve" {
+        if data == "admin_approve" {
             if !bot
                 .get_chat_administrators(msg.chat.id)
                 .await?
@@ -121,18 +140,18 @@ pub async fn callback_handler(
                 .text(&chat_config.messages.admin_approved_user)
                 .await?;
         } else {
-            if q.from.id != callback_data.user_id {
+            if q.from.id != dlg_data.user_id {
                 bot.answer_callback_query(q.id)
                     .text(&chat_config.messages.user_doesnt_match_error)
                     .await?;
                 return Ok(());
             }
 
-            if !math_captcha::validate_captcha_answer(callback_data.data, callback_data.btn_val) {
+            if !dlg_data.question.validate_question(data.parse()?) {
                 bot.answer_callback_query(q.id)
                     .text(&chat_config.messages.wrong_answer)
                     .await?;
-                bot.ban_chat_member(msg.chat.id, callback_data.user_id)
+                bot.ban_chat_member(msg.chat.id, dlg_data.user_id)
                     .await?;
                 bot.delete_message(msg.chat.id, msg.id).await?;
 
@@ -144,9 +163,11 @@ pub async fn callback_handler(
                 .await?;
         }
 
+        dlg_data.passed = true;
+
         bot.restrict_chat_member(
             msg.chat.id,
-            callback_data.user_id,
+            dlg_data.user_id,
             ChatPermissions::SEND_MESSAGES,
         )
         .await?;

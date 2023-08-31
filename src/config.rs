@@ -7,6 +7,7 @@ pub struct Chat {
     pub id: ChatId,
     pub override_chat_name: Option<String>,
     pub admins: ChatAdmins,
+    pub ban_after: u64, // sec
     pub messages: MessagesText,
 }
 
@@ -36,15 +37,14 @@ pub struct MessagesText {
 
 #[derive(Debug, Deserialize)]
 pub struct AppConfig {
-    pub bot_token: String,
     pub allowed_chats: Vec<Chat>,
 }
 
 impl AppConfig {
     pub fn try_read() -> Result<Self, ConfigError> {
         let s = Config::builder()
-            .add_source(File::with_name("config.toml").required(false))
-            .add_source(File::with_name("config.dev.toml").required(false))
+            .add_source(File::with_name("Config.toml").required(false))
+            .add_source(File::with_name("Config.dev.toml").required(false))
             .add_source(Environment::with_prefix("TGCAPTCHA"))
             .build()?;
 

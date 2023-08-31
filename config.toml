@@ -1,8 +1,7 @@
-bot_token = "TOKEN"
-
 [[allowed_chats]]
-id = "CHATID"
+id = "-1001138989389"
 admins.type = "AllAdmins"
+ban_after = "20"
 messages.new_user_template = """\
 سلام {TAGUSER}
 به گروه {CHATNAME} خوشآ‌مدید.

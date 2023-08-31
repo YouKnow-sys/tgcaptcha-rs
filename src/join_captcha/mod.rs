@@ -1,13 +1,15 @@
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
 use teloxide::{
     prelude::*,
-    types::{ChatPermissions, InlineKeyboardButton, InlineKeyboardMarkup, User}, utils::html::escape,
+    types::{ChatPermissions, InlineKeyboardButton, InlineKeyboardMarkup, User},
+    utils::html::escape,
 };
 
-use crate::HandlerResult;
+use crate::{config::AppConfig, HandlerResult};
 
 mod math_captcha;
-mod msgs;
 
 #[derive(Serialize, Deserialize)]
 struct CallBackData {
@@ -16,22 +18,42 @@ struct CallBackData {
     user_id: UserId,
 }
 
-// Im putting so much data inside the callback because I want the bot to be database less and as portable as possible
-pub async fn join_handler(bot: Bot, msg: Message, users: Vec<User>) -> HandlerResult {
+pub async fn join_handler(
+    bot: Bot,
+    app_config: Arc<AppConfig>,
+    msg: Message,
+    users: Vec<User>,
+) -> HandlerResult {
+    let Some(chat_config) = app_config.allowed_chats.iter().find(|c| c.id == msg.chat.id) else {
+        log::error!("Chat not found: {:?}", msg.chat);
+        return Ok(());
+    };
+
     for user in users {
         let (question, answers) = math_captcha::generate_captcha();
-        let text = format!(
-            concat!(
-                "سلام <a href=\"{}\">{}</a>\n",
-                "به گروه {} خوش آمدید\n",
-                "برای باز شدن گروه لطفا جواب درست رو انتخاب کنید\n",
-                "<b>{}</b>"
-            ),
-            user.url(),
-            escape(&user.full_name()),
-            escape(msg.chat.title().unwrap_or("Unknown")),
-            question,
-        );
+
+        let welcome_msg = chat_config
+            .messages
+            .new_user_template
+            .clone()
+            .replace(
+                "{TAGUSER}",
+                &format!(
+                    "<a href=\"{}\">{}</a>",
+                    user.url(),
+                    escape(&user.full_name())
+                ),
+            )
+            .replace(
+                "{CHATNAME}",
+                &escape(if let Some(ref title) = chat_config.override_chat_name {
+                    title
+                } else {
+                    msg.chat.title().unwrap_or_default()
+                }),
+            );
+
+        let text = format!("{}\n<b>{}</b>", welcome_msg, question);
 
         bot.restrict_chat_member(msg.chat.id, user.id, !ChatPermissions::SEND_MESSAGES)
             .await?;
@@ -54,7 +76,7 @@ pub async fn join_handler(bot: Bot, msg: Message, users: Vec<User>) -> HandlerRe
                     })
                     .collect(),
                 vec![InlineKeyboardButton::callback(
-                    msgs::ADMIN_APPROVE,
+                    &chat_config.messages.admin_approve,
                     serde_json::to_string(&CallBackData {
                         data: "admin_approve".to_owned(),
                         btn_val: 0,
@@ -69,8 +91,16 @@ pub async fn join_handler(bot: Bot, msg: Message, users: Vec<User>) -> HandlerRe
     Ok(())
 }
 
-pub async fn callback_handler(bot: Bot, q: CallbackQuery) -> HandlerResult {
+pub async fn callback_handler(
+    bot: Bot,
+    app_config: Arc<AppConfig>,
+    q: CallbackQuery,
+) -> HandlerResult {
     if let (Some(msg), Some(data)) = (q.message, q.data) {
+        let Some(chat_config) = app_config.allowed_chats.iter().find(|c| c.id == msg.chat.id) else {
+            return Ok(());
+        };
+
         let callback_data: CallBackData = serde_json::from_str(&data)?;
 
         if callback_data.data == "admin_approve" {
@@ -81,26 +111,26 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery) -> HandlerResult {
                 .any(|c| c.user.id == q.from.id)
             {
                 bot.answer_callback_query(q.id)
-                    .text(msgs::ADMIN_ONLY)
+                    .text(&chat_config.messages.admin_only_error)
                     .await?;
 
                 return Ok(());
             }
 
             bot.answer_callback_query(q.id)
-                .text(msgs::ADMIN_APPROVED_USER)
+                .text(&chat_config.messages.admin_approved_user)
                 .await?;
         } else {
             if q.from.id != callback_data.user_id {
                 bot.answer_callback_query(q.id)
-                    .text(msgs::USER_DOESNT_MATCH)
+                    .text(&chat_config.messages.user_doesnt_match_error)
                     .await?;
                 return Ok(());
             }
 
             if !math_captcha::validate_captcha_answer(callback_data.data, callback_data.btn_val) {
                 bot.answer_callback_query(q.id)
-                    .text(msgs::WRONG_ANSWER)
+                    .text(&chat_config.messages.wrong_answer)
                     .await?;
                 bot.ban_chat_member(msg.chat.id, callback_data.user_id)
                     .await?;
@@ -110,7 +140,7 @@ pub async fn callback_handler(bot: Bot, q: CallbackQuery) -> HandlerResult {
             }
 
             bot.answer_callback_query(q.id)
-                .text(msgs::CORRECT_ANSWER)
+                .text(&chat_config.messages.correct_answer)
                 .await?;
         }
 

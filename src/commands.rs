@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use teloxide::{
     requests::Requester,
     types::{Me, Message},
@@ -5,7 +7,10 @@ use teloxide::{
     Bot,
 };
 
-use crate::HandlerResult;
+use crate::{
+    config::{AppConfig, ChatAdmins},
+    HandlerResult,
+};
 
 #[derive(BotCommands)]
 #[command(rename_rule = "lowercase", description = "Available commands:")]
@@ -16,28 +21,46 @@ enum Command {
     Status,
 }
 
-pub async fn command_handler(bot: Bot, msg: Message, me: Me, text: String) -> HandlerResult {
+pub async fn command_handler(
+    bot: Bot,
+    app_config: Arc<AppConfig>,
+    msg: Message,
+    me: Me,
+    text: String,
+) -> HandlerResult {
+    let mut is_allowed = false;
     if let Some(user) = msg.from() {
-        if bot
-            .get_chat_administrators(msg.chat.id)
-            .await?
-            .iter()
-            .any(|c| c.user.id == user.id)
-        {
-            match BotCommands::parse(text.as_str(), me.username()) {
-                Ok(Command::Help) => {
-                    bot.send_message(msg.chat.id, Command::descriptions().to_string())
-                        .await?;
-                }
-                Ok(Command::Status) => {
-                    bot.send_message(msg.chat.id, "Im Up and running!").await?;
-                }
+        let admins = app_config.allowed_chats.iter().map(|c| &c.admins);
 
-                Err(_) => (),
+        for admin in admins {
+            let result = match admin {
+                ChatAdmins::Explicit(list) => list.contains(&user.id),
+                ChatAdmins::AllAdmins => {
+                    let chat_admins = bot.get_chat_administrators(msg.chat.id).await?;
+                    chat_admins.iter().any(|i| i.user.id == user.id)
+                }
+            };
+
+            if result {
+                is_allowed = true;
+                break;
             }
         }
     }
 
+    if is_allowed {
+        match BotCommands::parse(text.as_str(), me.username()) {
+            Ok(Command::Help) => {
+                bot.send_message(msg.chat.id, Command::descriptions().to_string())
+                    .await?;
+            }
+            Ok(Command::Status) => {
+                bot.send_message(msg.chat.id, "Im Up and running!").await?;
+            }
+
+            Err(_) => (),
+        };
+    }
     Ok(())
 }
 

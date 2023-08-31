@@ -4,16 +4,16 @@ authors = ["Saeid Ghafari <saeid025@yahoo.com>"]
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-log = { version = "0.4.20" }
-pretty_env_logger = { version = "0.5.0" }
-rand = "0.8.5"
-serde = { version = "1.0.188", features = ["derive"] }
-serde_json = { version = "1.0.105" }
-teloxide = { version = "0.12.2", features = ["macros"] }
-tokio = { version = "1.32.0", features = ["macros", "rt-multi-thread"] }
+log = { version = "0.4" }
+pretty_env_logger = { version = "0.5" }
+rand = "0.8"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0" }
+teloxide = { version = "0.12", features = ["macros"] }
+tokio = { version = "1.32", features = ["macros", "rt-multi-thread"] }
+config = { version = "0.13", features = ["toml"] }
+toml = "0.7"
 
 [profile.release]
 codegen-units = 1

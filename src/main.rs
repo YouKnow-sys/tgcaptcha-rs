@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
 use dashmap::DashMap;
-use join_captcha::Question;
+use join_check::Question;
 use teloxide::{dispatching::dialogue::InMemStorage, prelude::*, types::MessageId};
 
 mod commands;
 mod config;
-mod join_captcha;
+mod join_check;
 
 type HandlerError = Box<dyn std::error::Error + Send + Sync>;
 type HandlerResult = Result<(), HandlerError>;
@@ -46,10 +46,10 @@ async fn main() {
         .enter_dialogue::<Update, InMemStorage<DaialogueDataType>, DaialogueDataType>()
         .branch(
             Update::filter_message()
-                .branch(Message::filter_new_chat_members().endpoint(join_captcha::join_handler))
+                .branch(Message::filter_new_chat_members().endpoint(join_check::join_handler))
                 .branch(Message::filter_text().endpoint(commands::command_handler)),
         )
-        .branch(Update::filter_callback_query().endpoint(join_captcha::callback_handler));
+        .branch(Update::filter_callback_query().endpoint(join_check::callback_handler));
 
     Dispatcher::builder(bot, handler)
         .default_handler(|_| async {})

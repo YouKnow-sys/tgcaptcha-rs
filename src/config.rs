@@ -5,7 +5,7 @@ use teloxide::{
     utils,
 };
 
-use crate::join_captcha::Question;
+use crate::join_check::Question;
 
 #[derive(Debug, Deserialize)]
 pub struct Chat {

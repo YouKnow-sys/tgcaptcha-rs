@@ -5,7 +5,6 @@ use join_check::Question;
 use teloxide::{dispatching::dialogue::InMemStorage, prelude::*, types::MessageId};
 
 mod config;
-mod config2;
 mod commands;
 mod join_check;
 
@@ -41,7 +40,7 @@ async fn main() {
             .expect("Can't find the TGCAPTCHA_BOT_TOKEN environment variable with the token."),
     );
 
-    let config = Arc::new(config::AppConfig::try_read().expect("Failed to read config"));
+    let config = Arc::new(config::BotConfig::try_read().unwrap_or_default());
 
     let handler = dptree::entry()
         .enter_dialogue::<Update, InMemStorage<DaialogueDataType>, DaialogueDataType>()

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use dashmap::DashMap;
 use join_captcha::Question;
-use teloxide::{prelude::*, types::MessageId, dispatching::dialogue::InMemStorage};
+use teloxide::{dispatching::dialogue::InMemStorage, prelude::*, types::MessageId};
 
 mod commands;
 mod config;
@@ -22,7 +22,11 @@ pub struct DialogueData {
 
 impl DialogueData {
     fn new(user_id: UserId, question: Question) -> Self {
-        Self { user_id, question, passed: false }
+        Self {
+            user_id,
+            question,
+            passed: false,
+        }
     }
 }
 
@@ -49,7 +53,10 @@ async fn main() {
 
     Dispatcher::builder(bot, handler)
         .default_handler(|_| async {})
-        .dependencies(dptree::deps![config, InMemStorage::<DaialogueDataType>::new()])
+        .dependencies(dptree::deps![
+            config,
+            InMemStorage::<DaialogueDataType>::new()
+        ])
         .enable_ctrlc_handler()
         .build()
         .dispatch()

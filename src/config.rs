@@ -1,6 +1,11 @@
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
-use teloxide::types::{ChatId, UserId};
+use teloxide::{
+    types::{ChatId, User, UserId},
+    utils,
+};
+
+use crate::join_captcha::Question;
 
 #[derive(Debug, Deserialize)]
 pub struct Chat {
@@ -33,6 +38,17 @@ pub struct MessagesText {
     pub wrong_answer: String,
     pub admin_approved_user: String,
     pub correct_answer: String,
+}
+
+impl MessagesText {
+    pub fn create_welcome_msg(&self, user: &User, chat_name: &str, question: Question) -> String {
+        let msg = self
+            .new_user_template
+            .replace("{TAGUSER}", &utils::html::user_mention_or_link(user))
+            .replace("{CHATNAME}", chat_name);
+
+        format!("{msg}\n<b>{question}</b>")
+    }
 }
 
 #[derive(Debug, Deserialize)]

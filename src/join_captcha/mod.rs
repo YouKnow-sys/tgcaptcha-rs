@@ -7,7 +7,7 @@ use teloxide::{
     utils::html::escape,
 };
 
-use crate::{config::AppConfig, HandlerResult, GroupDialogue, HandlerError, DialogueData};
+use crate::{config::AppConfig, DialogueData, GroupDialogue, HandlerError, HandlerResult};
 pub use math_captcha::Question;
 
 mod math_captcha;
@@ -36,52 +36,49 @@ pub async fn join_handler(
     };
 
     for user in users {
-        if user.is_bot { continue }
+        if user.is_bot {
+            continue;
+        }
 
         let (question, answers) = Question::generate_question();
 
-        let welcome_msg = chat_config
-            .messages
-            .new_user_template
-            .clone()
-            .replace(
-                "{TAGUSER}",
-                &format!(
-                    "<a href=\"{}\">{}</a>",
-                    user.url(),
-                    escape(&user.full_name())
-                ),
-            )
-            .replace(
-                "{CHATNAME}",
-                &escape(if let Some(ref title) = chat_config.override_chat_name {
-                    title
-                } else {
-                    msg.chat.title().unwrap_or_default()
-                }),
-            );
-
-        let text = format!("{}\n<b>{}</b>", welcome_msg, question);
+        let welcome_msg = chat_config.messages.create_welcome_msg(
+            &user,
+            &escape(if let Some(ref title) = chat_config.override_chat_name {
+                title
+            } else {
+                msg.chat.title().unwrap_or_default()
+            }),
+            question.clone(),
+        );
 
         bot.restrict_chat_member(msg.chat.id, user.id, !ChatPermissions::SEND_MESSAGES)
             .await?;
-        let msg_id = bot.send_message(msg.chat.id, text)
+
+        let answers_btn = answers
+            .into_iter()
+            .map(|a| {
+                let a = a.to_string();
+                InlineKeyboardButton::callback(a.clone(), a)
+            })
+            .collect();
+
+        let msg_id = bot
+            .send_message(msg.chat.id, welcome_msg)
             .parse_mode(teloxide::types::ParseMode::Html)
             .reply_to_message_id(msg.id)
             .reply_markup(InlineKeyboardMarkup::new([
-                answers
-                    .into_iter()
-                    .map(|a| {
-                        let a = a.to_string();
-                        InlineKeyboardButton::callback(a.clone(), a)
-                    })
-                    .collect(),
-                vec![InlineKeyboardButton::callback(&chat_config.messages.admin_approve, "admin_approve")],
+                answers_btn,
+                vec![InlineKeyboardButton::callback(
+                    &chat_config.messages.admin_approve,
+                    "admin_approve",
+                )],
             ]))
             .await?
             .id;
 
-        let dialogue = dialogue.get()
+        let dialogue = dialogue
+            .get()
             .await?
             .ok_or::<HandlerError>("Can't find group dialogue in memory".into())?;
         dialogue.insert(msg_id, DialogueData::new(user.id, question));
@@ -93,8 +90,12 @@ pub async fn join_handler(
                 tokio::time::sleep(Duration::from_secs(ban_after)).await;
                 if let Some((_, data)) = dialogue.remove(&msg_id) {
                     if !data.passed {
-                        bot.ban_chat_member(msg.chat.id, data.user_id).await.expect("Failed to ban memeber after timeout");
-                        bot.delete_message(msg.chat.id, msg_id).await.expect("Failed to delete msg after timeout");
+                        bot.ban_chat_member(msg.chat.id, data.user_id)
+                            .await
+                            .expect("Failed to ban memeber after timeout");
+                        bot.delete_message(msg.chat.id, msg_id)
+                            .await
+                            .expect("Failed to delete msg after timeout");
                     }
                 }
             }
@@ -115,7 +116,8 @@ pub async fn callback_handler(
             return Ok(());
         };
 
-        let dlg_map = dialogue.get()
+        let dlg_map = dialogue
+            .get()
             .await?
             .ok_or::<HandlerError>("Can't find group dialogue in memory".into())?;
         let mut dlg_data = dlg_map
@@ -144,6 +146,7 @@ pub async fn callback_handler(
                 bot.answer_callback_query(q.id)
                     .text(&chat_config.messages.user_doesnt_match_error)
                     .await?;
+
                 return Ok(());
             }
 
@@ -151,8 +154,8 @@ pub async fn callback_handler(
                 bot.answer_callback_query(q.id)
                     .text(&chat_config.messages.wrong_answer)
                     .await?;
-                bot.ban_chat_member(msg.chat.id, dlg_data.user_id)
-                    .await?;
+
+                bot.ban_chat_member(msg.chat.id, dlg_data.user_id).await?;
                 bot.delete_message(msg.chat.id, msg.id).await?;
 
                 return Ok(());

@@ -14,6 +14,7 @@ tokio = { version = "1.32", features = ["macros", "rt-multi-thread"] }
 config = { version = "0.13", features = ["toml"] }
 dashmap = { version = "5.5" }
 humantime-serde = { version = "1.1" }
+serde_with = { version = "3.3" }
 
 [profile.release]
 codegen-units = 1

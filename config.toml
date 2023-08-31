@@ -1,14 +1,28 @@
-[[allowed_chats]]
-id = "-1001138989389"
-admins.type = "AllAdmins"
-ban_after = "20"
-messages.new_user_template = """\
-سلام {TAGUSER}
-به گروه {CHATNAME} خوشآ‌مدید.
-برای دسترسی به گروه، لطفا گزینه صحیح را انتخاب کنید."""
-messages.admin_approve = "تایید توسط ادمین ✅"
-messages.admin_only_error = "❌ این گزینه صرفا توسط ادمین های گروه قابل انتخاب است"
-messages.user_doesnt_match_error = "❌ این پیام برای شما نیست"
-messages.wrong_answer = "❌ جواب انتخابی شما اشتباه بود، شما از گروه بن میشوید"
-messages.admin_approved_user = "✅ شما این کاربر را تایید کردید"
-messages.correct_answer = "✅ جواب شما درست بود! حالا میتوانید در گروه چت کنید"
+# list of allowed groups, if used bot will work only in these groups
+# allowed_groups = []
+
+# Group settings, you can customize group settings by your liking here, in this example the `-0000000` is group id
+[groups_settings.-0000000]
+# set custom chat name to be used instead of group name
+# custom_chat_name = "Something"
+
+# set a list of admins for bot to work with, only these admins can use bot commands in group
+# if nothing given it means all group admin can use the bot
+# custom_admins = [1, 2, 3, ...]
+
+# set the time that it'll take for user to get banned if they dont answer the captcha
+ban_after = "5m"
+
+# set and modify messages
+messages.new_user_template = """
+Hello {TAGUSER}.
+Welcome to {CHATNAME} group.
+For accessing group, please choose the right answer from bellow options."""
+messages.admin_approve = "Confirmation by admin ✅"
+messages.admin_only_error = "❌ Only group admins can use this button"
+messages.user_doesnt_match_error = "❌ This message isn't for you"
+messages.wrong_answer = "❌ Your answer was wrong, you will be banned from group shortly"
+messages.admin_approved_user = "✅ You approved this user"
+messages.correct_answer = "✅ Your answer was correct! Now you can chat in the group"
+messages.unauthorized_group = "❌ This group isn't authorized. Goodbye!"
+

@@ -29,7 +29,7 @@ pub async fn command_handler(
     text: String,
 ) -> HandlerResult {
     if let Some(user) = msg.from() {
-        if config.allowed_groups.is_none() || config.allowed_groups.as_ref().is_some_and(|g| g.contains(&msg.chat.id)) {
+        if config.is_group_allowed(&msg.chat.id) {
             let is_allowed = match &config.get(&msg.chat.id).custom_admins {
                 Some(list) => list.contains(&user.id),
                 None => bot

@@ -24,6 +24,10 @@ impl BotConfig {
             .try_deserialize()
     }
 
+    pub fn is_group_allowed(&self, chat_id: &ChatId) -> bool {
+        !self.allowed_groups.as_ref().is_some_and(|g| !g.contains(chat_id))
+    }
+
     pub fn get(&self, chat_id: &ChatId) -> &GroupSettings {
         match self.groups_settings.get(chat_id) {
             Some(s) => s,

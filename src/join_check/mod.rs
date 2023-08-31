@@ -26,7 +26,7 @@ pub async fn join_handler(
     msg: Message,
     users: Vec<User>,
 ) -> HandlerResult {
-    if config.allowed_groups.as_ref().is_some_and(|g| !g.contains(&msg.chat.id)) {
+    if !config.is_group_allowed(&msg.chat.id) {
         log::error!("Chat not found: {:?}", msg.chat);
 
         bot.send_message(msg.chat.id, "This group isn't authorized. Goodbye!").await?;
@@ -114,7 +114,7 @@ pub async fn callback_handler(
     q: CallbackQuery,
 ) -> HandlerResult {
     if let (Some(msg), Some(data)) = (q.message, q.data) {
-        if config.allowed_groups.as_ref().is_some_and(|g| !g.contains(&msg.chat.id)) {
+        if !config.is_group_allowed(&msg.chat.id) {
             return Ok(());
         }
         

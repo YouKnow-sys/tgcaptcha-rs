@@ -1,6 +1,9 @@
+use std::sync::Arc;
+
 use teloxide::prelude::*;
 
 mod commands;
+mod config;
 mod join_captcha;
 
 type HandlerResult = Result<(), Box<dyn std::error::Error + Send + Sync>>;
@@ -10,7 +13,9 @@ async fn main() {
     pretty_env_logger::init();
     log::info!("Starting Captcha bot...");
 
-    let bot = Bot::from_env();
+    let config = config::AppConfig::try_read().expect("Failed to read config");
+
+    let bot = Bot::new(config.bot_token.clone());
 
     let handler = dptree::entry()
         .branch(
@@ -20,8 +25,12 @@ async fn main() {
         )
         .branch(Update::filter_callback_query().endpoint(join_captcha::callback_handler));
 
+    let mut dependency_map = DependencyMap::new();
+    dependency_map.insert(Arc::new(config));
+
     Dispatcher::builder(bot, handler)
         .default_handler(|_| async {})
+        .dependencies(dependency_map)
         .enable_ctrlc_handler()
         .build()
         .dispatch()

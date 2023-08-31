@@ -1,5 +1,8 @@
 use rand::{distributions::Uniform, seq::SliceRandom, thread_rng, Rng};
 
+pub type Question = String;
+pub type Answer = u8;
+
 const MIN: u8 = 1;
 const MAX: u8 = 10;
 const MAX_ANSWER: u8 = 100;
@@ -24,36 +27,30 @@ impl Operators {
 }
 
 impl TryFrom<&str> for Operators {
-    type Error = ();
+    type Error = &'static str;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         match value {
             "+" => Ok(Self::Add),
             "-" => Ok(Self::Sub),
             "*" => Ok(Self::Mul),
-            _ => {
-                log::warn!("Unknown operator found when parsing the captcha.");
-                Err(())
-            }
+            _ => Err("Unknown operator"),
         }
     }
 }
 
 impl std::fmt::Display for Operators {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::Add => '+',
-                Self::Sub => '-',
-                Self::Mul => '*',
-            }
-        )
+        match self {
+            Self::Add => '+',
+            Self::Sub => '-',
+            Self::Mul => '*',
+        }
+        .fmt(f)
     }
 }
 
-pub fn generate_captcha() -> (String, [u8; 4]) {
+pub fn generate_captcha() -> (Question, [Answer; 4]) {
     // in best case we should create the thread rng one time and then use it in entire program...
     let mut rng = thread_rng();
     let num1 = rng.gen_range(MIN..MAX);
@@ -81,7 +78,7 @@ pub fn generate_captcha() -> (String, [u8; 4]) {
     (question, answers)
 }
 
-pub fn validate_captcha_answer(question: String, answer: u8) -> bool {
+pub fn validate_captcha_answer(question: Question, answer: Answer) -> bool {
     let split: Vec<_> = question.split_whitespace().collect();
     if split.len() != 3 {
         log::warn!(

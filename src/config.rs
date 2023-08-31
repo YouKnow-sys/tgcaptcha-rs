@@ -67,6 +67,7 @@ pub struct MessagesText {
     pub wrong_answer: String,
     pub admin_approved_user: String,
     pub correct_answer: String,
+    pub unauthorized_group: String,
 }
 
 impl MessagesText {
@@ -98,6 +99,7 @@ impl Default for MessagesText {
             wrong_answer: "❌ Your answer was wrong, you will be banned from group shortly".to_owned(),
             admin_approved_user: "✅ You approved this user".to_owned(),
             correct_answer: "✅ Your answer was correct! Now you can chat in the group".to_owned(),
+            unauthorized_group: "❌ This group isn't authorized. Goodbye!".to_owned(),
         }
     }
 }

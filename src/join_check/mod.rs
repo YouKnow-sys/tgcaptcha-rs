@@ -29,7 +29,7 @@ pub async fn join_handler(
     if !config.is_group_allowed(&msg.chat.id) {
         log::error!("Chat not found: {:?}", msg.chat);
 
-        bot.send_message(msg.chat.id, "This group isn't authorized. Goodbye!").await?;
+        bot.send_message(msg.chat.id, &config.get(&msg.chat.id).messages.unauthorized_group).await?;
         bot.leave_chat(msg.chat.id).await?;
 
         return Ok(());

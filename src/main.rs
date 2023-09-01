@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use dashmap::DashMap;
-use join_check::Question;
+use join_check::MathQuestion;
 use teloxide::{dispatching::dialogue::InMemStorage, prelude::*, types::MessageId};
 
 mod commands;
@@ -16,12 +16,12 @@ type GroupDialogue = Dialogue<DaialogueDataType, InMemStorage<DaialogueDataType>
 #[derive(Clone)]
 pub struct DialogueData {
     user_id: UserId,
-    question: Question,
+    question: MathQuestion,
     passed: bool,
 }
 
 impl DialogueData {
-    fn new(user_id: UserId, question: Question) -> Self {
+    fn new(user_id: UserId, question: MathQuestion) -> Self {
         Self {
             user_id,
             question,

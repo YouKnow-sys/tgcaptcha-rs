@@ -2,8 +2,6 @@ use std::fmt::Display;
 
 use rand::{distributions::Uniform, seq::SliceRandom, thread_rng, Rng};
 
-pub type Answer = u8;
-
 const MIN: u8 = 1;
 const MAX: u8 = 10;
 const MAX_ANSWER: u8 = 100;
@@ -39,14 +37,14 @@ impl Display for Operators {
 }
 
 #[derive(Clone)]
-pub struct Question {
+pub struct MathQuestion {
     num1: u8,
     operator: Operators,
     num2: u8,
 }
 
-impl Question {
-    pub fn generate_question() -> (Self, [Answer; 4]) {
+impl MathQuestion {
+    pub fn generate_question() -> (Self, [u8; 4]) {
         // in best case we should create the thread rng one time and then use it in entire program...
         let mut rng = thread_rng();
         let num1 = rng.gen_range(MIN..MAX);
@@ -80,12 +78,12 @@ impl Question {
         )
     }
 
-    pub fn validate_question(&self, answer: Answer) -> bool {
+    pub fn validate_question(&self, answer: u8) -> bool {
         self.operator.eval(self.num1, self.num2) == answer
     }
 }
 
-impl Display for Question {
+impl Display for MathQuestion {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{} {} {}", self.num1, self.operator, self.num2)
     }

@@ -7,9 +7,9 @@ use teloxide::{
 };
 
 use crate::{config::BotConfig, DialogueData, GroupDialogue, HandlerError, HandlerResult};
-pub use math_captcha::Question;
+pub use captcha::*;
 
-mod math_captcha;
+mod captcha;
 
 pub async fn join_handler(
     bot: Bot,
@@ -38,7 +38,7 @@ pub async fn join_handler(
             continue;
         }
 
-        let (question, answers) = Question::generate_question();
+        let (question, answers) = MathQuestion::generate_question();
 
         let welcome_msg = chat_cfg.messages.create_welcome_msg(
             &user,

@@ -4,8 +4,8 @@ use dashmap::DashMap;
 use join_check::Question;
 use teloxide::{dispatching::dialogue::InMemStorage, prelude::*, types::MessageId};
 
-mod config;
 mod commands;
+mod config;
 mod join_check;
 
 type HandlerError = Box<dyn std::error::Error + Send + Sync>;

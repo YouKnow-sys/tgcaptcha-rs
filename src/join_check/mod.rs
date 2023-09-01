@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use serde::{Deserialize, Serialize};
 use teloxide::{
     prelude::*,
     types::{ChatPermissions, InlineKeyboardButton, InlineKeyboardMarkup, User},
@@ -12,13 +11,6 @@ pub use math_captcha::Question;
 
 mod math_captcha;
 
-#[derive(Serialize, Deserialize)]
-struct CallBackData {
-    data: String,
-    btn_val: u8,
-    user_id: UserId,
-}
-
 pub async fn join_handler(
     bot: Bot,
     config: Arc<BotConfig>,
@@ -29,7 +21,11 @@ pub async fn join_handler(
     if !config.is_group_allowed(&msg.chat.id) {
         log::error!("Chat not found: {:?}", msg.chat);
 
-        bot.send_message(msg.chat.id, &config.get(&msg.chat.id).messages.unauthorized_group).await?;
+        bot.send_message(
+            msg.chat.id,
+            &config.get(&msg.chat.id).messages.unauthorized_group,
+        )
+        .await?;
         bot.leave_chat(msg.chat.id).await?;
 
         return Ok(());
@@ -117,7 +113,7 @@ pub async fn callback_handler(
         if !config.is_group_allowed(&msg.chat.id) {
             return Ok(());
         }
-        
+
         let chat_cfg = config.get(&msg.chat.id);
 
         let dlg_map = dialogue

@@ -7,10 +7,7 @@ use teloxide::{
     Bot,
 };
 
-use crate::{
-    config::BotConfig,
-    HandlerResult,
-};
+use crate::{config::BotConfig, HandlerResult};
 
 #[derive(BotCommands)]
 #[command(rename_rule = "lowercase", description = "Available commands:")]
@@ -48,7 +45,7 @@ pub async fn command_handler(
                     Ok(Command::Status) => {
                         bot.send_message(msg.chat.id, "Im Up and running!").await?;
                     }
-    
+
                     Err(_) => (),
                 };
             }

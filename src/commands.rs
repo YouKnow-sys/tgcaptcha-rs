@@ -16,6 +16,8 @@ enum Command {
     Help,
     #[command(description = "Check the bot status")]
     Status,
+    #[command(description = "Bot source code")]
+    SourceCode,
 }
 
 pub async fn command_handler(
@@ -44,6 +46,16 @@ pub async fn command_handler(
                     }
                     Ok(Command::Status) => {
                         bot.send_message(msg.chat.id, "Im Up and running!").await?;
+                    }
+                    Ok(Command::SourceCode) => {
+                        bot.send_message(
+                            msg.chat.id,
+                            concat!(
+                                "You can find tgcaptcha-rs source code here\n",
+                                env!("CARGO_PKG_REPOSITORY")
+                            ),
+                        )
+                        .await?;
                     }
 
                     Err(_) => (),

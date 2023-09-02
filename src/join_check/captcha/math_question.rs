@@ -36,7 +36,7 @@ impl Display for Operators {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct MathQuestion {
     num1: u8,
     operator: Operators,

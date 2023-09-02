@@ -7,7 +7,7 @@ use teloxide::{
     Bot,
 };
 
-use crate::{config::BotConfig, HandlerResult};
+use crate::{config::GroupsConfig, HandlerResult};
 
 #[derive(BotCommands)]
 #[command(rename_rule = "lowercase", description = "Available commands:")]
@@ -20,7 +20,7 @@ enum Command {
 
 pub async fn command_handler(
     bot: Bot,
-    config: Arc<BotConfig>,
+    config: Arc<GroupsConfig>,
     msg: Message,
     me: Me,
     text: String,

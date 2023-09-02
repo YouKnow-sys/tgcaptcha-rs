@@ -34,13 +34,10 @@ impl DialogueData {
 async fn main() {
     pretty_env_logger::init();
     log::info!("Starting Captcha bot...");
+    
+    let config = config::BotConfig::try_read().expect("Failed to read config");
 
-    let bot = Bot::new(
-        std::env::var("TGCAPTCHA_BOT_TOKEN")
-            .expect("Can't find the TGCAPTCHA_BOT_TOKEN environment variable with the token."),
-    );
-
-    let config = Arc::new(config::BotConfig::try_read().unwrap_or_default());
+    let bot = Bot::new(config.bot_token);
 
     let handler = dptree::entry()
         .enter_dialogue::<Update, InMemStorage<DaialogueDataType>, DaialogueDataType>()
@@ -54,7 +51,7 @@ async fn main() {
     Dispatcher::builder(bot, handler)
         .default_handler(|_| async {})
         .dependencies(dptree::deps![
-            config,
+            Arc::new(config.groups_config),
             InMemStorage::<DaialogueDataType>::new()
         ])
         .enable_ctrlc_handler()

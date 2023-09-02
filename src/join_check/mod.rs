@@ -6,14 +6,14 @@ use teloxide::{
     utils::html::escape,
 };
 
-use crate::{config::BotConfig, DialogueData, GroupDialogue, HandlerError, HandlerResult};
+use crate::{config::GroupsConfig, DialogueData, GroupDialogue, HandlerError, HandlerResult};
 pub use captcha::*;
 
 mod captcha;
 
 pub async fn join_handler(
     bot: Bot,
-    config: Arc<BotConfig>,
+    config: Arc<GroupsConfig>,
     dialogue: GroupDialogue,
     msg: Message,
     users: Vec<User>,
@@ -47,7 +47,7 @@ pub async fn join_handler(
             } else {
                 msg.chat.title().unwrap_or_default()
             }),
-            question.clone(),
+            question,
         );
 
         bot.restrict_chat_member(msg.chat.id, user.id, !ChatPermissions::SEND_MESSAGES)
@@ -105,7 +105,7 @@ pub async fn join_handler(
 
 pub async fn callback_handler(
     bot: Bot,
-    config: Arc<BotConfig>,
+    config: Arc<GroupsConfig>,
     dialogue: GroupDialogue,
     q: CallbackQuery,
 ) -> HandlerResult {

@@ -1,6 +1,6 @@
 use std::{collections::HashMap, time::Duration};
 
-use config::{Config as PConfing, ConfigError, Environment, File};
+use config::{Config, ConfigError, Environment, File};
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr};
 use teloxide::{
@@ -10,9 +10,27 @@ use teloxide::{
 
 use crate::join_check::MathQuestion;
 
-#[serde_as]
 #[derive(Default, Serialize, Deserialize)]
 pub struct BotConfig {
+    pub bot_token: String,
+    #[serde(flatten, default)]
+    pub groups_config: GroupsConfig,
+}
+
+impl BotConfig {
+    pub fn try_read() -> Result<BotConfig, ConfigError> {
+        Config::builder()
+            .add_source(File::with_name("config.toml").required(false))
+            .add_source(File::with_name("config.dev.toml").required(false))
+            .add_source(Environment::with_prefix("TGCAPTCHA"))
+            .build()?
+            .try_deserialize()
+    }
+}
+
+#[serde_as]
+#[derive(Default, Serialize, Deserialize)]
+pub struct GroupsConfig {
     /// List of allowed group, if `None` bot will allow all groups
     pub allowed_groups: Option<Vec<ChatId>>,
     #[serde(skip)]
@@ -21,16 +39,7 @@ pub struct BotConfig {
     groups_settings: HashMap<i64, GroupSettings>,
 }
 
-impl BotConfig {
-    pub fn try_read() -> Result<BotConfig, ConfigError> {
-        PConfing::builder()
-            .add_source(File::with_name("Config.toml").required(false))
-            .add_source(File::with_name("Config.dev.toml").required(false))
-            .add_source(Environment::with_prefix("TGCAPTCHA"))
-            .build()?
-            .try_deserialize()
-    }
-
+impl GroupsConfig {
     pub fn is_group_allowed(&self, chat_id: &ChatId) -> bool {
         !self
             .allowed_groups

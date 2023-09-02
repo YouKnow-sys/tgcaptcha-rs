@@ -94,7 +94,12 @@ impl MessagesText {
         self == &Self::default()
     }
 
-    pub fn create_welcome_msg(&self, user: &User, chat_name: &str, question: MathQuestion) -> String {
+    pub fn create_welcome_msg(
+        &self,
+        user: &User,
+        chat_name: &str,
+        question: MathQuestion,
+    ) -> String {
         let msg = self
             .new_user_template
             .replace("{TAGUSER}", &user_mention_or_link(user))

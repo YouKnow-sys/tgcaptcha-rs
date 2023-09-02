@@ -34,7 +34,7 @@ impl DialogueData {
 async fn main() {
     pretty_env_logger::init();
     log::info!("Starting Captcha bot...");
-    
+
     let config = config::BotConfig::try_read().expect("Failed to read config");
 
     let bot = Bot::new(config.bot_token);

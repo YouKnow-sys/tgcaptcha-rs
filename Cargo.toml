@@ -3,6 +3,7 @@ name = "tgcaptcha-rs"
 authors = ["Saeid Ghafari <saeid025@yahoo.com>"]
 version = "0.1.0"
 edition = "2021"
+repository = "https://github.com/YouKnow-sys/tgcaptcha-rs"
 
 [dependencies]
 log = { version = "0.4" }

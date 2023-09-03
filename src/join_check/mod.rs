@@ -125,12 +125,16 @@ pub async fn callback_handler(
             .ok_or::<HandlerError>("Can't find message id in group dialogue".into())?;
 
         if data == "admin_approve" {
-            if !bot
-                .get_chat_administrators(msg.chat.id)
-                .await?
-                .iter()
-                .any(|c| c.user.id == q.from.id)
-            {
+            let admin_allowed = match &config.get(&msg.chat.id).custom_admins {
+                Some(list) => list.contains(&q.from.id),
+                None => bot
+                    .get_chat_administrators(msg.chat.id)
+                    .await?
+                    .iter()
+                    .any(|c| c.user.id == q.from.id),
+            };
+
+            if !admin_allowed {
                 bot.answer_callback_query(q.id)
                     .text(&chat_cfg.messages.admin_only_error)
                     .await?;

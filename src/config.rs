@@ -32,7 +32,7 @@ impl BotConfig {
 #[derive(Default, Serialize, Deserialize)]
 pub struct GroupsConfig {
     /// List of allowed group, if `None` bot will allow all groups
-    pub allowed_groups: Option<Vec<ChatId>>,
+    pub allowed_groups: Vec<ChatId>,
     #[serde(skip)]
     fallback_group_settings: GroupSettings,
     #[serde_as(as = "HashMap<DisplayFromStr, _>")]
@@ -41,10 +41,7 @@ pub struct GroupsConfig {
 
 impl GroupsConfig {
     pub fn is_group_allowed(&self, chat_id: &ChatId) -> bool {
-        !self
-            .allowed_groups
-            .as_ref()
-            .is_some_and(|g| !g.contains(chat_id))
+        self.allowed_groups.is_empty() || self.allowed_groups.contains(chat_id)
     }
 
     pub fn get(&self, chat_id: &ChatId) -> &GroupSettings {

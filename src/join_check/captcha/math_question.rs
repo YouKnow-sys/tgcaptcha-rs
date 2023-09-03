@@ -70,14 +70,7 @@ impl MathQuestion {
         ];
         answers.shuffle(&mut rng);
 
-        (
-            Self {
-                lhs,
-                operator,
-                rhs,
-            },
-            answers,
-        )
+        (Self { lhs, operator, rhs }, answers)
     }
 
     pub fn validate_question(&self, answer: Answer) -> bool {

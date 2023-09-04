@@ -18,7 +18,7 @@ enum Operators {
 impl Operators {
     const LIST: [Operators; 3] = [Self::Add, Self::Sub, Self::Mul];
 
-    fn eval(&self, num1: u8, num2: u8) -> Answer {
+    fn eval(&self, lhs: u8, rhs: u8) -> Answer {
         match self {
             Self::Add => num1 + num2,
             Self::Sub => num1 - num2,

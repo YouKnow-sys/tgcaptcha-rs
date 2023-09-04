@@ -1,55 +1,57 @@
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 
-use serde::{Deserialize, Serialize};
 use teloxide::{
     prelude::*,
     types::{ChatPermissions, InlineKeyboardButton, InlineKeyboardMarkup, User},
     utils::html::escape,
 };
 
-use crate::{config::AppConfig, DialogueData, GroupDialogue, HandlerError, HandlerResult};
-pub use math_captcha::Question;
+use crate::{config::GroupsConfig, DialogueData, GroupDialogue, HandlerError, HandlerResult};
+pub use captcha::*;
 
-mod math_captcha;
-
-#[derive(Serialize, Deserialize)]
-struct CallBackData {
-    data: String,
-    btn_val: u8,
-    user_id: UserId,
-}
+mod captcha;
 
 pub async fn join_handler(
     bot: Bot,
-    app_config: Arc<AppConfig>,
+    config: Arc<GroupsConfig>,
     dialogue: GroupDialogue,
     msg: Message,
     users: Vec<User>,
 ) -> HandlerResult {
-    let Some(chat_config) = app_config.allowed_chats.iter().find(|c| c.id == msg.chat.id) else {
-        log::error!("Chat not found: {:?}", msg.chat);
+    if !config.is_group_allowed(&msg.chat.id) {
+        log::error!(
+            "Unknown chat {} with id {}",
+            msg.chat.title().unwrap_or_default(),
+            msg.chat.id
+        );
 
-        bot.send_message(msg.chat.id, "This group isn't authorized. Goodbye!").await?;
+        bot.send_message(
+            msg.chat.id,
+            &config.get(&msg.chat.id).messages.unauthorized_group,
+        )
+        .await?;
         bot.leave_chat(msg.chat.id).await?;
 
         return Ok(());
-    };
+    }
+
+    let chat_cfg = config.get(&msg.chat.id);
 
     for user in users {
         if user.is_bot {
             continue;
         }
 
-        let (question, answers) = Question::generate_question();
+        let (question, answers) = MathQuestion::generate_question();
 
-        let welcome_msg = chat_config.messages.create_welcome_msg(
+        let welcome_msg = chat_cfg.messages.create_welcome_msg(
             &user,
-            &escape(if let Some(ref title) = chat_config.override_chat_name {
+            &escape(if let Some(ref title) = chat_cfg.custom_chat_name {
                 title
             } else {
                 msg.chat.title().unwrap_or_default()
             }),
-            question.clone(),
+            question,
         );
 
         bot.restrict_chat_member(msg.chat.id, user.id, !ChatPermissions::SEND_MESSAGES)
@@ -70,7 +72,7 @@ pub async fn join_handler(
             .reply_markup(InlineKeyboardMarkup::new([
                 answers_btn,
                 vec![InlineKeyboardButton::callback(
-                    &chat_config.messages.admin_approve,
+                    &chat_cfg.messages.admin_approve,
                     "admin_approve",
                 )],
             ]))
@@ -85,9 +87,9 @@ pub async fn join_handler(
 
         tokio::spawn({
             let bot = bot.clone();
-            let ban_after = chat_config.ban_after;
+            let ban_after = chat_cfg.ban_after;
             async move {
-                tokio::time::sleep(Duration::from_secs(ban_after)).await;
+                tokio::time::sleep(ban_after).await;
                 if let Some((_, data)) = dialogue.remove(&msg_id) {
                     if !data.passed {
                         bot.ban_chat_member(msg.chat.id, data.user_id)
@@ -107,14 +109,16 @@ pub async fn join_handler(
 
 pub async fn callback_handler(
     bot: Bot,
-    app_config: Arc<AppConfig>,
+    config: Arc<GroupsConfig>,
     dialogue: GroupDialogue,
     q: CallbackQuery,
 ) -> HandlerResult {
     if let (Some(msg), Some(data)) = (q.message, q.data) {
-        let Some(chat_config) = app_config.allowed_chats.iter().find(|c| c.id == msg.chat.id) else {
+        if !config.is_group_allowed(&msg.chat.id) {
             return Ok(());
-        };
+        }
+
+        let chat_cfg = config.get(&msg.chat.id);
 
         let dlg_map = dialogue
             .get()
@@ -125,26 +129,30 @@ pub async fn callback_handler(
             .ok_or::<HandlerError>("Can't find message id in group dialogue".into())?;
 
         if data == "admin_approve" {
-            if !bot
-                .get_chat_administrators(msg.chat.id)
-                .await?
-                .iter()
-                .any(|c| c.user.id == q.from.id)
-            {
+            let admin_allowed = match &config.get(&msg.chat.id).custom_admins {
+                Some(list) => list.contains(&q.from.id),
+                None => bot
+                    .get_chat_administrators(msg.chat.id)
+                    .await?
+                    .iter()
+                    .any(|c| c.user.id == q.from.id),
+            };
+
+            if !admin_allowed {
                 bot.answer_callback_query(q.id)
-                    .text(&chat_config.messages.admin_only_error)
+                    .text(&chat_cfg.messages.admin_only_error)
                     .await?;
 
                 return Ok(());
             }
 
             bot.answer_callback_query(q.id)
-                .text(&chat_config.messages.admin_approved_user)
+                .text(&chat_cfg.messages.admin_approved_user)
                 .await?;
         } else {
             if q.from.id != dlg_data.user_id {
                 bot.answer_callback_query(q.id)
-                    .text(&chat_config.messages.user_doesnt_match_error)
+                    .text(&chat_cfg.messages.user_doesnt_match_error)
                     .await?;
 
                 return Ok(());
@@ -152,7 +160,7 @@ pub async fn callback_handler(
 
             if !dlg_data.question.validate_question(data.parse()?) {
                 bot.answer_callback_query(q.id)
-                    .text(&chat_config.messages.wrong_answer)
+                    .text(&chat_cfg.messages.wrong_answer)
                     .await?;
 
                 bot.ban_chat_member(msg.chat.id, dlg_data.user_id).await?;
@@ -162,7 +170,7 @@ pub async fn callback_handler(
             }
 
             bot.answer_callback_query(q.id)
-                .text(&chat_config.messages.correct_answer)
+                .text(&chat_cfg.messages.correct_answer)
                 .await?;
         }
 

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use dashmap::DashMap;
-use join_check::Question;
+use join_check::MathQuestion;
 use teloxide::{dispatching::dialogue::InMemStorage, prelude::*, types::MessageId};
 
 mod commands;
@@ -16,12 +16,12 @@ type GroupDialogue = Dialogue<DaialogueDataType, InMemStorage<DaialogueDataType>
 #[derive(Clone)]
 pub struct DialogueData {
     user_id: UserId,
-    question: Question,
+    question: MathQuestion,
     passed: bool,
 }
 
 impl DialogueData {
-    fn new(user_id: UserId, question: Question) -> Self {
+    fn new(user_id: UserId, question: MathQuestion) -> Self {
         Self {
             user_id,
             question,
@@ -35,12 +35,9 @@ async fn main() {
     pretty_env_logger::init();
     log::info!("Starting Captcha bot...");
 
-    let bot = Bot::new(
-        std::env::var("TGCAPTCHA_BOT_TOKEN")
-            .expect("Can't find the TGCAPTCHA_BOT_TOKEN environment variable with the token."),
-    );
+    let config = config::BotConfig::try_read().expect("Failed to read config");
 
-    let config = Arc::new(config::AppConfig::try_read().expect("Failed to read config"));
+    let bot = Bot::new(config.bot_token);
 
     let handler = dptree::entry()
         .enter_dialogue::<Update, InMemStorage<DaialogueDataType>, DaialogueDataType>()
@@ -54,7 +51,7 @@ async fn main() {
     Dispatcher::builder(bot, handler)
         .default_handler(|_| async {})
         .dependencies(dptree::deps![
-            config,
+            Arc::new(config.groups_config),
             InMemStorage::<DaialogueDataType>::new()
         ])
         .enable_ctrlc_handler()

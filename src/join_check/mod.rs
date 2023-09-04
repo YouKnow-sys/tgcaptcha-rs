@@ -19,7 +19,11 @@ pub async fn join_handler(
     users: Vec<User>,
 ) -> HandlerResult {
     if !config.is_group_allowed(&msg.chat.id) {
-        log::error!("Unknown chat {} with id {}", msg.chat.title().unwrap_or_default(), msg.chat.id);
+        log::error!(
+            "Unknown chat {} with id {}",
+            msg.chat.title().unwrap_or_default(),
+            msg.chat.id
+        );
 
         bot.send_message(
             msg.chat.id,

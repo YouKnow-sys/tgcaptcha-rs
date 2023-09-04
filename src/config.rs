@@ -5,7 +5,7 @@ use serde::Deserialize;
 use serde_with::{serde_as, DisplayFromStr};
 use teloxide::{
     types::{ChatId, User, UserId},
-    utils::html::{escape, user_mention_or_link},
+    utils::html::{escape, link},
 };
 
 use crate::join_check::MathQuestion;
@@ -97,7 +97,7 @@ impl MessagesText {
     ) -> String {
         let msg = self
             .new_user_template
-            .replace("{TAGUSER}", &user_mention_or_link(user))
+            .replace("{TAGUSER}", &link(user.url().as_str(), &user.full_name()))
             .replace("{CHATNAME}", &escape(chat_name));
 
         format!("{msg}\n<b>{question}</b>")

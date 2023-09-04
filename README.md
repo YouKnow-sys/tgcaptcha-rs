@@ -15,7 +15,7 @@ A telegram bot that validate new users that enter to the (**super**)group with a
 ## Commands:
 `/help`: show commands help message.\
 `/status`: check the bot status, can be used to make sure that the bot is up and running.\
-`/source_code`: share a link to the source code of the bot.
+`/sourcecode`: share a link to the source code of the bot.
 
 ## Todo:
 - [ ] add Docker files

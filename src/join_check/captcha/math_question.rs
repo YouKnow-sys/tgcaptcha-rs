@@ -9,14 +9,14 @@ const MAX: u8 = 10;
 const MAX_ANSWER: u8 = 100;
 
 #[derive(Clone, Copy, PartialEq)]
-enum Operators {
+enum Operator {
     Add,
     Sub,
     Mul,
 }
 
-impl Operators {
-    const LIST: [Operators; 3] = [Self::Add, Self::Sub, Self::Mul];
+impl Operator {
+    const LIST: [Operator; 3] = [Self::Add, Self::Sub, Self::Mul];
 
     fn eval(&self, lhs: u8, rhs: u8) -> Answer {
         match self {
@@ -27,7 +27,7 @@ impl Operators {
     }
 }
 
-impl Display for Operators {
+impl Display for Operator {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Add => '+',
@@ -41,7 +41,7 @@ impl Display for Operators {
 #[derive(Clone, Copy)]
 pub struct MathQuestion {
     lhs: u8,
-    operator: Operators,
+    operator: Operator,
     rhs: u8,
 }
 
@@ -50,14 +50,9 @@ impl MathQuestion {
         // in best case we should create the thread rng one time and then use it in entire program...
         let mut rng = thread_rng();
         let lhs = rng.gen_range(MIN..MAX);
-        let operator = *Operators::LIST.choose(&mut rng).unwrap();
-        let rhs = rng.gen_range(
-            MIN..=if operator == Operators::Sub {
-                lhs // if we want to sub the numbers the first number need to be always bigger then second one
-            } else {
-                MAX
-            },
-        );
+        let operator = *Operator::LIST.choose(&mut rng).unwrap();
+        // if we want to sub the numbers the first number need to be always bigger or equal to the second one
+        let rhs = rng.gen_range(MIN..=if operator == Operator::Sub { lhs } else { MAX });
 
         let answer = operator.eval(lhs, rhs);
 
@@ -73,13 +68,13 @@ impl MathQuestion {
         (Self { lhs, operator, rhs }, answers)
     }
 
-    pub fn validate_question(&self, answer: Answer) -> bool {
+    pub fn validate_answer(&self, answer: Answer) -> bool {
         self.operator.eval(self.lhs, self.rhs) == answer
     }
 }
 
 impl Display for MathQuestion {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} {} {}", self.lhs, self.operator, self.rhs)
+        write!(f, "{}‌ {}‌ {}", self.lhs, self.operator, self.rhs)
     }
 }

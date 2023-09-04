@@ -1,3 +1,6 @@
+# You can put the bot token directly in config or you can set it in env as TGCAPTCHA_BOT_TOKEN
+# bot_token = "..."
+
 # list of allowed groups, if used bot will work only in these groups
 # allowed_groups = []
 

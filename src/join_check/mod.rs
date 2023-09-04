@@ -158,7 +158,7 @@ pub async fn callback_handler(
                 return Ok(());
             }
 
-            if !dlg_data.question.validate_question(data.parse()?) {
+            if !dlg_data.question.validate_answer(data.parse()?) {
                 bot.answer_callback_query(q.id)
                     .text(&chat_cfg.messages.wrong_answer)
                     .await?;

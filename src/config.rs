@@ -1,7 +1,7 @@
 use std::{collections::HashMap, time::Duration};
 
 use config::{Config, ConfigError, Environment, File};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_with::{serde_as, DisplayFromStr};
 use teloxide::{
     types::{ChatId, User, UserId},
@@ -10,7 +10,7 @@ use teloxide::{
 
 use crate::join_check::MathQuestion;
 
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Default, Deserialize)]
 pub struct BotConfig {
     pub bot_token: String,
     #[serde(flatten, default)]
@@ -29,13 +29,15 @@ impl BotConfig {
 }
 
 #[serde_as]
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Default, Deserialize)]
 pub struct GroupsConfig {
     /// List of allowed group, if `None` bot will allow all groups
+    #[serde(default)]
     pub allowed_groups: Vec<ChatId>,
     #[serde(skip)]
     fallback_group_settings: GroupSettings,
     #[serde_as(as = "HashMap<DisplayFromStr, _>")]
+    #[serde(default)]
     groups_settings: HashMap<i64, GroupSettings>,
 }
 
@@ -52,14 +54,14 @@ impl GroupsConfig {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct GroupSettings {
     pub custom_chat_name: Option<String>,
     /// List of allowed admin to use bot commands and admin related stuff
     pub custom_admins: Option<Vec<UserId>>,
     #[serde(with = "humantime_serde")]
     pub ban_after: Duration,
-    #[serde(skip_serializing_if = "MessagesText::is_default", default)]
+    #[serde(default)]
     pub messages: MessagesText,
 }
 
@@ -74,7 +76,7 @@ impl Default for GroupSettings {
     }
 }
 
-#[derive(Serialize, Deserialize, PartialEq)]
+#[derive(Deserialize, PartialEq)]
 pub struct MessagesText {
     pub new_user_template: String,
     pub admin_approve: String,
@@ -87,10 +89,6 @@ pub struct MessagesText {
 }
 
 impl MessagesText {
-    fn is_default(&self) -> bool {
-        self == &Self::default()
-    }
-
     pub fn create_welcome_msg(
         &self,
         user: &User,

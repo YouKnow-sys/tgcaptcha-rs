@@ -20,9 +20,9 @@ impl Operators {
 
     fn eval(&self, lhs: u8, rhs: u8) -> Answer {
         match self {
-            Self::Add => num1 + num2,
-            Self::Sub => num1 - num2,
-            Self::Mul => num1 * num2,
+            Self::Add => lhs + rhs,
+            Self::Sub => lhs - rhs,
+            Self::Mul => lhs * rhs,
         }
     }
 }

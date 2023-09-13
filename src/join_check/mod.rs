@@ -6,7 +6,7 @@ use teloxide::{
     utils::html::escape,
 };
 
-use crate::{config::GroupsConfig, DialogueData, GroupDialogue, HandlerError, HandlerResult};
+use crate::{config::GroupsConfig, DialogueData, GroupDialogue, HandlerResult};
 pub use captcha::*;
 
 mod captcha;
@@ -82,7 +82,7 @@ pub async fn join_handler(
         let dialogue = dialogue
             .get()
             .await?
-            .ok_or::<HandlerError>("Can't find the group dialogue in memory".into())?;
+            .ok_or("Can't find the group dialogue in memory")?;
         dialogue.insert(msg_id, DialogueData::new(user.id, question));
 
         tokio::spawn({
@@ -127,10 +127,11 @@ pub async fn callback_handler(
         let dlg_map = dialogue
             .get()
             .await?
-            .ok_or::<HandlerError>("Can't find the group dialogue in memory".into())?;
+            .ok_or("Can't find the group dialogue in memory")?;
+        
         let mut dlg_data = dlg_map
             .get_mut(&msg.id)
-            .ok_or::<HandlerError>("Can't find the message id in group dialogue".into())?;
+            .ok_or("Can't find the message id in group dialogue")?;
 
         if data == "admin_approve" {
             let admin_allowed = match &config.get(msg.chat.id).custom_admins {

@@ -34,7 +34,7 @@ pub struct GroupsConfig {
     /// List of allowed groups, if `None` bot will allow all groups
     #[serde(default)]
     pub allowed_groups: Vec<ChatId>,
-    #[serde(skip)]
+    #[serde(default)]
     fallback_group_settings: GroupSettings,
     #[serde_as(as = "HashMap<DisplayFromStr, _>")]
     #[serde(default)]

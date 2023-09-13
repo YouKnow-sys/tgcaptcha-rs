@@ -10,8 +10,8 @@ mod join_check;
 
 type HandlerError = Box<dyn std::error::Error + Send + Sync>;
 type HandlerResult = Result<(), HandlerError>;
-type DaialogueDataType = Arc<DashMap<MessageId, DialogueData>>;
-type GroupDialogue = Dialogue<DaialogueDataType, InMemStorage<DaialogueDataType>>;
+type DialogueDataType = Arc<DashMap<MessageId, DialogueData>>;
+type GroupDialogue = Dialogue<DialogueDataType, InMemStorage<DialogueDataType>>;
 
 #[derive(Clone)]
 pub struct DialogueData {
@@ -40,7 +40,7 @@ async fn main() {
     let bot = Bot::new(config.bot_token);
 
     let handler = dptree::entry()
-        .enter_dialogue::<Update, InMemStorage<DaialogueDataType>, DaialogueDataType>()
+        .enter_dialogue::<Update, InMemStorage<DialogueDataType>, DialogueDataType>()
         .branch(
             Update::filter_message()
                 .branch(Message::filter_new_chat_members().endpoint(join_check::join_handler))
@@ -52,7 +52,7 @@ async fn main() {
         .default_handler(|_| async {})
         .dependencies(dptree::deps![
             Arc::new(config.groups_config),
-            InMemStorage::<DaialogueDataType>::new()
+            InMemStorage::<DialogueDataType>::new()
         ])
         .enable_ctrlc_handler()
         .build()

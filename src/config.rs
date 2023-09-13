@@ -31,7 +31,7 @@ impl BotConfig {
 #[serde_as]
 #[derive(Default, Deserialize)]
 pub struct GroupsConfig {
-    /// List of allowed group, if `None` bot will allow all groups
+    /// List of allowed groups, if `None` bot will allow all groups
     #[serde(default)]
     pub allowed_groups: Vec<ChatId>,
     #[serde(skip)]
@@ -42,11 +42,11 @@ pub struct GroupsConfig {
 }
 
 impl GroupsConfig {
-    pub fn is_group_allowed(&self, chat_id: &ChatId) -> bool {
-        self.allowed_groups.is_empty() || self.allowed_groups.contains(chat_id)
+    pub fn is_group_allowed(&self, chat_id: ChatId) -> bool {
+        self.allowed_groups.is_empty() || self.allowed_groups.contains(&chat_id)
     }
 
-    pub fn get(&self, chat_id: &ChatId) -> &GroupSettings {
+    pub fn get(&self, chat_id: ChatId) -> &GroupSettings {
         match self.groups_settings.get(&chat_id.0) {
             Some(s) => s,
             None => &self.fallback_group_settings,
@@ -116,7 +116,7 @@ impl Default for MessagesText {
             admin_approve: "Confirmation by admin ✅".to_owned(),
             admin_only_error: "❌ Only group admins can use this button".to_owned(),
             user_doesnt_match_error: "❌ This message isn't for you".to_owned(),
-            wrong_answer: "❌ Your answer was wrong, you will be banned from group shortly"
+            wrong_answer: "❌ Your answer was wrong, you will be banned from the group shortly"
                 .to_owned(),
             admin_approved_user: "✅ You approved this user".to_owned(),
             correct_answer: "✅ Your answer was correct! Now you can chat in the group".to_owned(),

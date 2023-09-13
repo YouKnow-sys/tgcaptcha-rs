@@ -18,7 +18,7 @@ enum Operator {
 impl Operator {
     const LIST: [Operator; 3] = [Self::Add, Self::Sub, Self::Mul];
 
-    fn eval(&self, lhs: u8, rhs: u8) -> Answer {
+    fn eval(self, lhs: u8, rhs: u8) -> Answer {
         match self {
             Self::Add => lhs + rhs,
             Self::Sub => lhs - rhs,
@@ -47,11 +47,12 @@ pub struct MathQuestion {
 
 impl MathQuestion {
     pub fn generate_question() -> (Self, [Answer; 4]) {
-        // in best case we should create the thread rng one time and then use it in entire program...
+        // in best case we should create the thread rng one time and then use it in the entire program...
         let mut rng = thread_rng();
         let lhs = rng.gen_range(MIN..MAX);
         let operator = *Operator::LIST.choose(&mut rng).unwrap();
-        // if we want to sub the numbers the first number need to be always bigger or equal to the second one
+        // if we want to sub the numbers,
+        // then the first number need to be always greater or equal to the second one
         let rhs = rng.gen_range(MIN..=if operator == Operator::Sub { lhs } else { MAX });
 
         let answer = operator.eval(lhs, rhs);
@@ -68,7 +69,7 @@ impl MathQuestion {
         (Self { lhs, operator, rhs }, answers)
     }
 
-    pub fn validate_answer(&self, answer: Answer) -> bool {
+    pub fn validate_answer(self, answer: Answer) -> bool {
         self.operator.eval(self.lhs, self.rhs) == answer
     }
 }

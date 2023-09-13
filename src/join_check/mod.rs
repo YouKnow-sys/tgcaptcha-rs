@@ -18,7 +18,7 @@ pub async fn join_handler(
     msg: Message,
     users: Vec<User>,
 ) -> HandlerResult {
-    if !config.is_group_allowed(&msg.chat.id) {
+    if !config.is_group_allowed(msg.chat.id) {
         log::error!(
             "Unknown chat {} with id {}",
             msg.chat.title().unwrap_or_default(),
@@ -27,7 +27,7 @@ pub async fn join_handler(
 
         bot.send_message(
             msg.chat.id,
-            &config.get(&msg.chat.id).messages.unauthorized_group,
+            &config.get(msg.chat.id).messages.unauthorized_group,
         )
         .await?;
         bot.leave_chat(msg.chat.id).await?;
@@ -35,7 +35,7 @@ pub async fn join_handler(
         return Ok(());
     }
 
-    let chat_cfg = config.get(&msg.chat.id);
+    let chat_cfg = config.get(msg.chat.id);
 
     for user in users {
         if user.is_bot {
@@ -82,7 +82,7 @@ pub async fn join_handler(
         let dialogue = dialogue
             .get()
             .await?
-            .ok_or::<HandlerError>("Can't find group dialogue in memory".into())?;
+            .ok_or::<HandlerError>("Can't find the group dialogue in memory".into())?;
         dialogue.insert(msg_id, DialogueData::new(user.id, question));
 
         tokio::spawn({
@@ -94,10 +94,10 @@ pub async fn join_handler(
                     if !data.passed {
                         bot.ban_chat_member(msg.chat.id, data.user_id)
                             .await
-                            .expect("Failed to ban memeber after timeout");
+                            .expect("Failed to ban the member after timeout");
                         bot.delete_message(msg.chat.id, msg_id)
                             .await
-                            .expect("Failed to delete msg after timeout");
+                            .expect("Failed to delete the message after timeout");
                     }
                 }
             }
@@ -114,7 +114,7 @@ pub async fn callback_handler(
     q: CallbackQuery,
 ) -> HandlerResult {
     if let (Some(msg), Some(data)) = (q.message, q.data) {
-        if !config.is_group_allowed(&msg.chat.id) {
+        if !config.is_group_allowed(msg.chat.id) {
             return Ok(());
         }
 
@@ -122,18 +122,18 @@ pub async fn callback_handler(
             return Err("Can't get the group permissions".into());
         };
 
-        let chat_cfg = config.get(&msg.chat.id);
+        let chat_cfg = config.get(msg.chat.id);
 
         let dlg_map = dialogue
             .get()
             .await?
-            .ok_or::<HandlerError>("Can't find group dialogue in memory".into())?;
+            .ok_or::<HandlerError>("Can't find the group dialogue in memory".into())?;
         let mut dlg_data = dlg_map
             .get_mut(&msg.id)
-            .ok_or::<HandlerError>("Can't find message id in group dialogue".into())?;
+            .ok_or::<HandlerError>("Can't find the message id in group dialogue".into())?;
 
         if data == "admin_approve" {
-            let admin_allowed = match &config.get(&msg.chat.id).custom_admins {
+            let admin_allowed = match &config.get(msg.chat.id).custom_admins {
                 Some(list) => list.contains(&q.from.id),
                 None => bot
                     .get_chat_administrators(msg.chat.id)
@@ -180,8 +180,16 @@ pub async fn callback_handler(
 
         dlg_data.passed = true;
 
-        bot.restrict_chat_member(msg.chat.id, dlg_data.user_id, permissions)
-            .await?;
+        bot.restrict_chat_member(
+            msg.chat.id,
+            dlg_data.user_id,
+            permissions
+                - ChatPermissions::PIN_MESSAGES
+                - ChatPermissions::MANAGE_TOPICS
+                - ChatPermissions::CHANGE_INFO,
+        )
+        .await?;
+
         bot.delete_message(msg.chat.id, msg.id).await?;
     }
 

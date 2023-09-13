@@ -118,6 +118,10 @@ pub async fn callback_handler(
             return Ok(());
         }
 
+        let Some(permissions) = bot.get_chat(msg.chat.id).await?.permissions() else {
+            return Err("Can't get the group permissions".into());
+        };
+
         let chat_cfg = config.get(&msg.chat.id);
 
         let dlg_map = dialogue
@@ -176,12 +180,8 @@ pub async fn callback_handler(
 
         dlg_data.passed = true;
 
-        bot.restrict_chat_member(
-            msg.chat.id,
-            dlg_data.user_id,
-            ChatPermissions::all() - ChatPermissions::PIN_MESSAGES - ChatPermissions::MANAGE_TOPICS - ChatPermissions::CHANGE_INFO,
-        )
-        .await?;
+        bot.restrict_chat_member(msg.chat.id, dlg_data.user_id, permissions)
+            .await?;
         bot.delete_message(msg.chat.id, msg.id).await?;
     }
 

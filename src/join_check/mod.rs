@@ -128,7 +128,7 @@ pub async fn callback_handler(
             .get()
             .await?
             .ok_or("Can't find the group dialogue in memory")?;
-        
+
         let mut dlg_data = dlg_map
             .get_mut(&msg.id)
             .ok_or("Can't find the message id in group dialogue")?;

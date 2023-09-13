@@ -54,7 +54,7 @@ pub async fn join_handler(
             question,
         );
 
-        bot.restrict_chat_member(msg.chat.id, user.id, !ChatPermissions::SEND_MESSAGES)
+        bot.restrict_chat_member(msg.chat.id, user.id, !ChatPermissions::empty())
             .await?;
 
         let answers_btn = answers
@@ -179,7 +179,7 @@ pub async fn callback_handler(
         bot.restrict_chat_member(
             msg.chat.id,
             dlg_data.user_id,
-            ChatPermissions::SEND_MESSAGES,
+            ChatPermissions::all() - ChatPermissions::PIN_MESSAGES - ChatPermissions::MANAGE_TOPICS - ChatPermissions::CHANGE_INFO,
         )
         .await?;
         bot.delete_message(msg.chat.id, msg.id).await?;

@@ -54,7 +54,7 @@ pub async fn join_handler(
             question,
         );
 
-        bot.restrict_chat_member(msg.chat.id, user.id, !ChatPermissions::empty())
+        bot.restrict_chat_member(msg.chat.id, user.id, ChatPermissions::empty())
             .await?;
 
         let answers_btn = answers

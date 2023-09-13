@@ -5,6 +5,10 @@ version = "0.1.0"
 edition = "2021"
 repository = "https://github.com/YouKnow-sys/tgcaptcha-rs"
 license = "MIT"
+description = "A Telegram bot that validates new users that enter to the supergroup or group with a simple math question."
+keywords = ["telegram", "bot", "captcha", "group", "supergroup"]
+readme = "README.md"
+publish = false
 
 [dependencies]
 log = { version = "0.4" }

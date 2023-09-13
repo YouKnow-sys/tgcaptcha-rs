@@ -180,15 +180,8 @@ pub async fn callback_handler(
 
         dlg_data.passed = true;
 
-        bot.restrict_chat_member(
-            msg.chat.id,
-            dlg_data.user_id,
-            permissions
-                - ChatPermissions::PIN_MESSAGES
-                - ChatPermissions::MANAGE_TOPICS
-                - ChatPermissions::CHANGE_INFO,
-        )
-        .await?;
+        bot.restrict_chat_member(msg.chat.id, dlg_data.user_id, permissions)
+            .await?;
 
         bot.delete_message(msg.chat.id, msg.id).await?;
     }

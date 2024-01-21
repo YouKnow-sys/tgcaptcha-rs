@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Instant};
 
 use dashmap::DashMap;
 use join_check::MathQuestion;
@@ -35,6 +35,8 @@ async fn main() {
     pretty_env_logger::init();
     log::info!("Starting Captcha bot...");
 
+    let bot_start_time = Instant::now();
+
     let config = config::BotConfig::try_read().expect("Failed to read config");
 
     let bot = Bot::new(config.bot_token);
@@ -51,6 +53,7 @@ async fn main() {
     Dispatcher::builder(bot, handler)
         .default_handler(|_| async {})
         .dependencies(dptree::deps![
+            bot_start_time,
             Arc::new(config.groups_config),
             InMemStorage::<DialogueDataType>::new()
         ])

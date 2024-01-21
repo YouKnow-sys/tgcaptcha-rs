@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Instant};
 
 use teloxide::{
     requests::Requester,
@@ -16,6 +16,8 @@ enum Command {
     Help,
     #[command(description = "Check the bot status")]
     Status,
+    #[command(description = "Show the uptime of the bot")]
+    Uptime,
     #[command(description = "Bot source code")]
     SourceCode,
 }
@@ -26,6 +28,7 @@ pub async fn command_handler(
     msg: Message,
     me: Me,
     text: String,
+    instant: Instant,
 ) -> HandlerResult {
     if let Some(user) = msg.from() {
         if config.is_group_allowed(msg.chat.id) {
@@ -46,6 +49,16 @@ pub async fn command_handler(
                     }
                     Ok(Command::Status) => {
                         bot.send_message(msg.chat.id, "I'm Up and running!").await?;
+                    }
+                    Ok(Command::Uptime) => {
+                        bot.send_message(
+                            msg.chat.id,
+                            format!(
+                                "Bot uptime: {}",
+                                humantime::format_duration(instant.elapsed())
+                            ),
+                        )
+                        .await?;
                     }
                     Ok(Command::SourceCode) => {
                         bot.send_message(

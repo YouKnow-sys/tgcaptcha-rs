@@ -42,7 +42,7 @@ pub async fn join_handler(
             continue;
         }
 
-        let (question, answers) = MathQuestion::generate_question();
+        let (question, answers) = MathQuestion::generate_question::<4>();
 
         let welcome_msg = chat_cfg.messages.create_welcome_msg(
             &user,

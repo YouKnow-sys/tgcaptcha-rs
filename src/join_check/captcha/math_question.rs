@@ -18,7 +18,7 @@ enum Operator {
 impl Operator {
     const LIST: [Operator; 3] = [Self::Add, Self::Sub, Self::Mul];
 
-    fn eval(self, lhs: u8, rhs: u8) -> Answer {
+    const fn eval(self, lhs: u8, rhs: u8) -> Answer {
         match self {
             Self::Add => lhs + rhs,
             Self::Sub => lhs - rhs,
@@ -46,7 +46,9 @@ pub struct MathQuestion {
 }
 
 impl MathQuestion {
-    pub fn generate_question() -> (Self, [Answer; 4]) {
+    /// Generate a question
+    pub fn generate_question<const N: usize>() -> (Self, [Answer; N]) {
+        debug_assert!(N < MAX_ANSWER as usize, "N shouldn't be bigger then {MAX_ANSWER}");
         // in best case we should create the thread rng one
         // time and then use it in the entire program...
         let mut rng = thread_rng();
@@ -62,8 +64,9 @@ impl MathQuestion {
         // we do this because we want a fully random list of numbers
         // it might get a little slower sometimes, but its a better
         // choice security wise...
-        let mut answers = [0, 0, 0, answer];
-        for i in 0..3 {
+        let mut answers = [0; N];
+        answers[N-1] = answer;
+        for i in 0..N-1 {
             let r = rng.sample(range);
             if r != answer && !answers.contains(&r) {
                 answers[i] = r;
@@ -76,7 +79,7 @@ impl MathQuestion {
         (Self { lhs, operator, rhs }, answers)
     }
 
-    pub fn validate_answer(self, answer: Answer) -> bool {
+    pub const fn validate_answer(self, answer: Answer) -> bool {
         self.operator.eval(self.lhs, self.rhs) == answer
     }
 }

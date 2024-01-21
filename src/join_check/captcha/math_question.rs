@@ -48,7 +48,10 @@ pub struct MathQuestion {
 impl MathQuestion {
     /// Generate a question
     pub fn generate_question<const N: usize>() -> (Self, [Answer; N]) {
-        debug_assert!(N < MAX_ANSWER as usize, "N shouldn't be bigger then {MAX_ANSWER}");
+        debug_assert!(
+            N < MAX_ANSWER as usize,
+            "N shouldn't be bigger then {MAX_ANSWER}"
+        );
         // in best case we should create the thread rng one
         // time and then use it in the entire program...
         let mut rng = thread_rng();
@@ -65,8 +68,8 @@ impl MathQuestion {
         // it might get a little slower sometimes, but its a better
         // choice security wise...
         let mut answers = [0; N];
-        answers[N-1] = answer;
-        for i in 0..N-1 {
+        answers[N - 1] = answer;
+        for i in 0..N - 1 {
             let r = rng.sample(range);
             if r != answer && !answers.contains(&r) {
                 answers[i] = r;

@@ -7,6 +7,7 @@ use teloxide::{dispatching::dialogue::InMemStorage, prelude::*, types::MessageId
 mod commands;
 mod config;
 mod join_check;
+mod rust_commands;
 
 type HandlerError = Box<dyn std::error::Error + Send + Sync>;
 type HandlerResult = Result<(), HandlerError>;

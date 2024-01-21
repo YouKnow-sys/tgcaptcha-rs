@@ -23,6 +23,7 @@ Bot written fully in Rust 🦀.
    If it takes too long for the user to respond or choose the wrong answer, they will be banned.
 
 ## Commands:
-`/help`: show commands help message.\
-`/status`: check the bot status, can be used to make sure that the bot is up and running.\
-`/sourcecode`: share a link to the source code of the bot.
+- `/help`: show commands help message.
+- `/status`: check the bot status, can be used to make sure that the bot is up and running.
+- `/uptime`: show the bot uptime.
+- `/sourcecode`: share a link to the source code of the bot.

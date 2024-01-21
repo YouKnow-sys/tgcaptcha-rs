@@ -1,6 +1,7 @@
 use std::{sync::Arc, time::Instant};
 
 use teloxide::{
+    payloads::SendMessageSetters,
     requests::Requester,
     types::{Me, Message},
     utils::command::BotCommands,
@@ -45,10 +46,13 @@ pub async fn command_handler(
                 match BotCommands::parse(text.as_str(), me.username()) {
                     Ok(Command::Help) => {
                         bot.send_message(msg.chat.id, Command::descriptions().to_string())
+                            .reply_to_message_id(msg.id)
                             .await?;
                     }
                     Ok(Command::Status) => {
-                        bot.send_message(msg.chat.id, "I'm Up and running!").await?;
+                        bot.send_message(msg.chat.id, "I'm Up and running!")
+                            .reply_to_message_id(msg.id)
+                            .await?;
                     }
                     Ok(Command::Uptime) => {
                         bot.send_message(
@@ -58,6 +62,7 @@ pub async fn command_handler(
                                 humantime::format_duration(instant.elapsed())
                             ),
                         )
+                        .reply_to_message_id(msg.id)
                         .await?;
                     }
                     Ok(Command::SourceCode) => {
@@ -68,6 +73,7 @@ pub async fn command_handler(
                                 env!("CARGO_PKG_REPOSITORY")
                             ),
                         )
+                        .reply_to_message_id(msg.id)
                         .await?;
                     }
 

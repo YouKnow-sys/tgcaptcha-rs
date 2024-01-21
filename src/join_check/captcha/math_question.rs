@@ -47,24 +47,31 @@ pub struct MathQuestion {
 
 impl MathQuestion {
     pub fn generate_question() -> (Self, [Answer; 4]) {
-        // in best case we should create the thread rng one time and then use it in the entire program...
+        // in best case we should create the thread rng one
+        // time and then use it in the entire program...
         let mut rng = thread_rng();
         let lhs = rng.gen_range(MIN..MAX);
         let operator = *Operator::LIST.choose(&mut rng).unwrap();
-        // if we want to sub the numbers,
-        // then the first number need to be always greater or equal to the second one
+        // if we want to sub the numbers, then the first number
+        // need to be always greater or equal to the second one.
         let rhs = rng.gen_range(MIN..=if operator == Operator::Sub { lhs } else { MAX });
 
         let answer = operator.eval(lhs, rhs);
 
         let range = Uniform::new_inclusive(MIN, MAX_ANSWER);
-        let mut answers = [
-            rng.sample(range),
-            rng.sample(range),
-            rng.sample(range),
-            answer,
-        ];
-        answers.shuffle(&mut rng);
+        // we do this because we want a fully random list of numbers
+        // it might get a little slower sometimes, but its a better
+        // choice security wise...
+        let mut answers = [0, 0, 0, answer];
+        for i in 0..3 {
+            let r = rng.sample(range);
+            if r != answer && !answers.contains(&r) {
+                answers[i] = r;
+            }
+        }
+        // we shuffle 1..3 because we dont want the answer
+        // to end up being at start of list.
+        answers[1..3].shuffle(&mut rng);
 
         (Self { lhs, operator, rhs }, answers)
     }

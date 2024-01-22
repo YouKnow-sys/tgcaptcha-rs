@@ -1,12 +1,14 @@
 use std::sync::Arc;
 
+use anyhow::{anyhow, bail, Result};
+
 use teloxide::{
     prelude::*,
     types::{ChatPermissions, InlineKeyboardButton, InlineKeyboardMarkup, User},
     utils::html::escape,
 };
 
-use crate::{config::GroupsConfig, DialogueData, GroupDialogue, HandlerResult};
+use crate::{config::GroupsConfig, DialogueData, GroupDialogue};
 pub use captcha::*;
 
 mod captcha;
@@ -17,7 +19,7 @@ pub async fn join_handler(
     dialogue: GroupDialogue,
     msg: Message,
     users: Vec<User>,
-) -> HandlerResult {
+) -> Result<()> {
     if !config.is_group_allowed(msg.chat.id) {
         log::error!(
             "Unknown chat {} with id {}",
@@ -27,7 +29,11 @@ pub async fn join_handler(
 
         bot.send_message(
             msg.chat.id,
-            &config.get(msg.chat.id).messages.unauthorized_group,
+            &config
+                .get(msg.chat.id)
+                .messages
+                .join_captcha
+                .unauthorized_group,
         )
         .await?;
         bot.leave_chat(msg.chat.id).await?;
@@ -44,7 +50,7 @@ pub async fn join_handler(
 
         let (question, answers) = MathQuestion::generate_question::<4>();
 
-        let welcome_msg = chat_cfg.messages.create_welcome_msg(
+        let welcome_msg = chat_cfg.messages.join_captcha.create_welcome_msg(
             &user,
             &escape(if let Some(ref title) = chat_cfg.custom_chat_name {
                 title
@@ -72,7 +78,7 @@ pub async fn join_handler(
             .reply_markup(InlineKeyboardMarkup::new([
                 answers_btn,
                 vec![InlineKeyboardButton::callback(
-                    &chat_cfg.messages.admin_approve,
+                    &chat_cfg.messages.join_captcha.admin_approve,
                     "admin_approve",
                 )],
             ]))
@@ -82,7 +88,7 @@ pub async fn join_handler(
         let dialogue = dialogue
             .get()
             .await?
-            .ok_or("Can't find the group dialogue in memory")?;
+            .ok_or(anyhow!("Can't find the group dialogue in memory"))?;
         dialogue.insert(msg_id, DialogueData::new(user.id, question));
 
         tokio::spawn({
@@ -112,14 +118,14 @@ pub async fn callback_handler(
     config: Arc<GroupsConfig>,
     dialogue: GroupDialogue,
     q: CallbackQuery,
-) -> HandlerResult {
+) -> Result<()> {
     if let (Some(msg), Some(data)) = (q.message, q.data) {
         if !config.is_group_allowed(msg.chat.id) {
             return Ok(());
         }
 
         let Some(permissions) = bot.get_chat(msg.chat.id).await?.permissions() else {
-            return Err("Can't get the group permissions".into());
+            bail!("Can't get the group permissions");
         };
 
         let chat_cfg = config.get(msg.chat.id);
@@ -127,11 +133,11 @@ pub async fn callback_handler(
         let dlg_map = dialogue
             .get()
             .await?
-            .ok_or("Can't find the group dialogue in memory")?;
+            .ok_or(anyhow!("Can't find the group dialogue in memory"))?;
 
         let mut dlg_data = dlg_map
             .get_mut(&msg.id)
-            .ok_or("Can't find the message id in group dialogue")?;
+            .ok_or(anyhow!("Can't find the message id in group dialogue"))?;
 
         if data == "admin_approve" {
             let admin_allowed = match &config.get(msg.chat.id).custom_admins {
@@ -145,19 +151,19 @@ pub async fn callback_handler(
 
             if !admin_allowed {
                 bot.answer_callback_query(q.id)
-                    .text(&chat_cfg.messages.admin_only_error)
+                    .text(&chat_cfg.messages.join_captcha.admin_only_error)
                     .await?;
 
                 return Ok(());
             }
 
             bot.answer_callback_query(q.id)
-                .text(&chat_cfg.messages.admin_approved_user)
+                .text(&chat_cfg.messages.join_captcha.admin_approved_user)
                 .await?;
         } else {
             if q.from.id != dlg_data.user_id {
                 bot.answer_callback_query(q.id)
-                    .text(&chat_cfg.messages.user_doesnt_match_error)
+                    .text(&chat_cfg.messages.join_captcha.user_doesnt_match_error)
                     .await?;
 
                 return Ok(());
@@ -165,7 +171,7 @@ pub async fn callback_handler(
 
             if !dlg_data.question.validate_answer(data.parse()?) {
                 bot.answer_callback_query(q.id)
-                    .text(&chat_cfg.messages.wrong_answer)
+                    .text(&chat_cfg.messages.join_captcha.wrong_answer)
                     .await?;
 
                 bot.ban_chat_member(msg.chat.id, dlg_data.user_id).await?;
@@ -175,7 +181,7 @@ pub async fn callback_handler(
             }
 
             bot.answer_callback_query(q.id)
-                .text(&chat_cfg.messages.correct_answer)
+                .text(&chat_cfg.messages.join_captcha.correct_answer)
                 .await?;
         }
 

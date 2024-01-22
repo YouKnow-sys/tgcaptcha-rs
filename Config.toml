@@ -21,11 +21,11 @@ messages.new_user_template = """
 Hello {TAGUSER}.
 Welcome to {CHATNAME} group.
 For accessing group, please choose the right answer from bellow options."""
-messages.admin_approve = "Confirmation by admin ✅"
-messages.admin_only_error = "❌ Only group admins can use this button"
-messages.user_doesnt_match_error = "❌ This message isn't for you"
-messages.wrong_answer = "❌ Your answer was wrong, you will be banned from group shortly"
-messages.admin_approved_user = "✅ You approved this user"
-messages.correct_answer = "✅ Your answer was correct! Now you can chat in the group"
-messages.unauthorized_group = "❌ This group isn't authorized. Goodbye!"
+messages.join_captcha.admin_approve = "Confirmation by admin ✅"
+messages.join_captcha.admin_only_error = "❌ Only group admins can use this button"
+messages.join_captcha.user_doesnt_match_error = "❌ This message isn't for you"
+messages.join_captcha.wrong_answer = "❌ Your answer was wrong, you will be banned from group shortly"
+messages.join_captcha.admin_approved_user = "✅ You approved this user"
+messages.join_captcha.correct_answer = "✅ Your answer was correct! Now you can chat in the group"
+messages.join_captcha.unauthorized_group = "❌ This group isn't authorized. Goodbye!"
 

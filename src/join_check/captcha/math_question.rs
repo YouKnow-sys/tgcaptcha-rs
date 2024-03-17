@@ -75,9 +75,9 @@ impl MathQuestion {
                 answers[i] = r;
             }
         }
-        // we shuffle 1..N-1 because we dont want the answer
+        // we shuffle 1..N because we dont want the answer
         // to end up being at start of list.
-        answers[1..N-1].shuffle(&mut rng);
+        answers[1..N].shuffle(&mut rng);
 
         (Self { lhs, operator, rhs }, answers)
     }

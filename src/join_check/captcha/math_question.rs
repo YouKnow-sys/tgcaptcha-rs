@@ -70,9 +70,12 @@ impl MathQuestion {
         let mut answers = [0; N];
         answers[N - 1] = answer;
         for i in 0..N - 1 {
-            let r = rng.sample(range);
-            if r != answer && !answers.contains(&r) {
-                answers[i] = r;
+            loop {
+                let r = rng.sample(range);
+                if r != answer && !answers.contains(&r) {
+                    answers[i] = r;
+                    break;
+                }
             }
         }
         // we shuffle 1..N because we dont want the answer
@@ -90,5 +93,33 @@ impl MathQuestion {
 impl Display for MathQuestion {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}‌ {}‌ {}", self.lhs, self.operator, self.rhs)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::MathQuestion;
+
+    fn generic_question<const N: usize>() {
+        for _ in 0..10 {
+            let (question, answers) = MathQuestion::generate_question::<N>();
+
+            let mut found_answer = false;
+            for (idx, answer) in answers.into_iter().enumerate() {
+                if question.validate_answer(answer) {
+                    assert_ne!(idx, 0, "Answer never should be the first value.");
+                    found_answer = true;
+                }
+            }
+
+            assert!(found_answer, "Didn't found the answer in math question.");
+        }
+    }
+
+    #[test]
+    fn generate_question() {
+        generic_question::<4>();
+        generic_question::<5>();
+        generic_question::<10>();
     }
 }

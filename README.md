@@ -1,6 +1,6 @@
 # Rust Telegram Captcha Bot
-[![Build Status](https://github.com/YouKnow-sys/tgcaptcha-rs/actions/workflows/rust.yml/badge.svg)](https://github.com/YouKnow-sys/ar-reshaper/actions?workflow=Rust%20CI)
-[![MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/YouKnow-sys/ar-reshaper/blob/master/LICENSE)
+[![Build Status](https://github.com/YouKnow-sys/tgcaptcha-rs/actions/workflows/rust.yml/badge.svg)](https://github.com/YouKnow-sys/tgcaptcha-rs/actions?workflow=Rust%20CI)
+[![MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/YouKnow-sys/tgcaptcha-rs/blob/master/LICENSE)
 
 A Telegram bot that validates new users that enter to the (**super**)group with a simple math question.
 

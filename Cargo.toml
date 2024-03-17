@@ -1,7 +1,7 @@
 [package]
 name = "tgcaptcha-rs"
 authors = ["Saeid Ghafari <saeid025@yahoo.com>"]
-version = "0.1.4"
+version = "0.1.5"
 edition = "2021"
 repository = "https://github.com/YouKnow-sys/tgcaptcha-rs"
 license = "MIT"
@@ -16,7 +16,7 @@ rand = { version = "0.8" }
 serde = { version = "1.0", features = ["derive"] }
 teloxide = { version = "0.12", features = ["macros"] }
 tokio = { version = "1.35", features = ["macros", "rt-multi-thread"] }
-config = { version = "0.13", features = ["toml"] }
+config = { version = "0.14", features = ["toml"] }
 dashmap = { version = "5.5" }
 humantime = { version = "2.1" }
 humantime-serde = { version = "1.1" }

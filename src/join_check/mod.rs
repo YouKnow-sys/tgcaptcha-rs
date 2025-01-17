@@ -82,7 +82,7 @@ pub async fn join_handler(
         let dialogue = dialogue
             .get()
             .await?
-            .ok_or("Can't find the group dialogue in memory")?;
+            .ok_or(anyhow::anyhow!("Can't find the group dialogue in memory"))?;
         dialogue.insert(msg_id, DialogueData::new(user.id, question));
 
         tokio::spawn({
@@ -119,7 +119,7 @@ pub async fn callback_handler(
         }
 
         let Some(permissions) = bot.get_chat(msg.chat.id).await?.permissions() else {
-            return Err("Can't get the group permissions".into());
+            anyhow::bail!("Can't get the group permissions")
         };
 
         let chat_cfg = config.get(msg.chat.id);
@@ -127,11 +127,11 @@ pub async fn callback_handler(
         let dlg_map = dialogue
             .get()
             .await?
-            .ok_or("Can't find the group dialogue in memory")?;
+            .ok_or(anyhow::anyhow!("Can't find the group dialogue in memory"))?;
 
         let mut dlg_data = dlg_map
             .get_mut(&msg.id)
-            .ok_or("Can't find the message id in group dialogue")?;
+            .ok_or(anyhow::anyhow!("Can't find the message id in group dialogue"))?;
 
         if data == "admin_approve" {
             let admin_allowed = match &config.get(msg.chat.id).custom_admins {

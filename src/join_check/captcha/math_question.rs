@@ -52,8 +52,6 @@ impl MathQuestion {
             N < MAX_ANSWER as usize,
             "N shouldn't be bigger then {MAX_ANSWER}"
         );
-        // in best case we should create the thread rng one
-        // time and then use it in the entire program...
         let mut rng = thread_rng();
         let lhs = rng.gen_range(MIN..MAX);
         let operator = *Operator::LIST.choose(&mut rng).unwrap();
@@ -68,6 +66,8 @@ impl MathQuestion {
         // it might get a little slower sometimes, but its a better
         // choice security wise...
         let mut answers = [0; N];
+        // we put the answer at the end of the list so we are sure
+        // it's never the first answer
         answers[N - 1] = answer;
         for i in 0..N - 1 {
             loop {

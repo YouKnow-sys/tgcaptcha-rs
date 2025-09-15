@@ -1,6 +1,10 @@
 use std::fmt::Display;
 
-use rand::{distributions::Uniform, seq::SliceRandom, thread_rng, Rng};
+use rand::{
+    distr::Uniform,
+    seq::{IndexedRandom, SliceRandom},
+    Rng,
+};
 
 pub type Answer = u8;
 
@@ -9,7 +13,7 @@ const MAX: u8 = 10;
 const MAX_ANSWER: u8 = 100;
 
 #[derive(Clone, Copy, PartialEq)]
-enum Operator {
+pub enum Operator {
     Add,
     Sub,
     Mul,
@@ -23,6 +27,24 @@ impl Operator {
             Self::Add => lhs + rhs,
             Self::Sub => lhs - rhs,
             Self::Mul => lhs * rhs,
+        }
+    }
+
+    pub const fn into_number(self) -> u8 {
+        match self {
+            Self::Add => 0,
+            Self::Sub => 1,
+            Self::Mul => 2,
+        }
+    }
+
+    /// should only be called with a valid number (0..=2)
+    pub const fn from_number(num: u8) -> Self {
+        match num {
+            0 => Self::Add,
+            1 => Self::Sub,
+            2 => Self::Mul,
+            _ => unreachable!(),
         }
     }
 }
@@ -40,9 +62,9 @@ impl Display for Operator {
 
 #[derive(Clone, Copy)]
 pub struct MathQuestion {
-    lhs: u8,
-    operator: Operator,
-    rhs: u8,
+    pub lhs: u8,
+    pub operator: Operator,
+    pub rhs: u8,
 }
 
 impl MathQuestion {
@@ -52,16 +74,16 @@ impl MathQuestion {
             N < MAX_ANSWER as usize,
             "N shouldn't be bigger then {MAX_ANSWER}"
         );
-        let mut rng = thread_rng();
-        let lhs = rng.gen_range(MIN..MAX);
+        let mut rng = rand::rng();
+        let lhs = rng.random_range(MIN..MAX);
         let operator = *Operator::LIST.choose(&mut rng).unwrap();
         // if we want to sub the numbers, then the first number
         // need to be always greater or equal to the second one.
-        let rhs = rng.gen_range(MIN..=if operator == Operator::Sub { lhs } else { MAX });
+        let rhs = rng.random_range(MIN..=if operator == Operator::Sub { lhs } else { MAX });
 
         let answer = operator.eval(lhs, rhs);
 
-        let range = Uniform::new_inclusive(MIN, MAX_ANSWER);
+        let range = Uniform::new_inclusive(MIN, MAX_ANSWER).unwrap();
         // we do this because we want a fully random list of numbers
         // it might get a little slower sometimes, but its a better
         // choice security wise...

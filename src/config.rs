@@ -13,6 +13,7 @@ use crate::join_check::MathQuestion;
 #[derive(Default, Deserialize)]
 pub struct BotConfig {
     pub bot_token: String,
+    pub database_path: String,
     #[serde(flatten, default)]
     pub groups_config: GroupsConfig,
 }
@@ -86,6 +87,8 @@ pub struct MessagesText {
     pub admin_approved_user: String,
     pub correct_answer: String,
     pub unauthorized_group: String,
+    pub removeing_user_failed: String,
+    pub delete_message: String,
 }
 
 impl MessagesText {
@@ -101,6 +104,11 @@ impl MessagesText {
             .replace("{CHATNAME}", &escape(chat_name));
 
         format!("{msg}\n<b>{question}</b>")
+    }
+
+    pub fn create_removeing_user_failed(&self, user: &User) -> String {
+        self.removeing_user_failed
+            .replace("{TAGUSER}", &link(user.url().as_str(), &user.full_name()))
     }
 }
 
@@ -121,6 +129,12 @@ impl Default for MessagesText {
             admin_approved_user: "✅ You approved this user".to_owned(),
             correct_answer: "✅ Your answer was correct! Now you can chat in the group".to_owned(),
             unauthorized_group: "❌ This group isn't authorized. Goodbye!".to_owned(),
+            removeing_user_failed: concat!(
+                "Removing user {TAGUSER} failed due to an error.\n",
+                "Manual intervention required."
+            )
+            .to_owned(),
+            delete_message: "🗑 Delete message".to_owned(),
         }
     }
 }

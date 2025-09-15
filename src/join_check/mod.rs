@@ -1,104 +1,146 @@
 use std::sync::Arc;
 
+use anyhow::Context;
+use chrono::Utc;
+use sqlx::SqlitePool;
+use storage::ChatStorage;
 use teloxide::{
     prelude::*,
-    types::{ChatPermissions, InlineKeyboardButton, InlineKeyboardMarkup, User},
-    utils::html::escape,
+    types::{
+        ChatPermissions, InlineKeyboardButton, InlineKeyboardMarkup, MaybeInaccessibleMessage,
+        ParseMode, ReplyParameters, User,
+    },
 };
 
-use crate::{config::GroupsConfig, DialogueData, GroupDialogue, HandlerResult};
+use crate::{config::GroupsConfig, helpers, HandlerResult};
 pub use captcha::*;
+use storage::JoinCheckData;
 
 mod captcha;
+pub mod storage;
+
+const ANSWERS_COUNT: usize = 4;
+const ADMIN_APPROVE_CB: &str = "admin_approve";
+const DELETE_KEYBOARD_CB: &str = "delete_keyboard";
 
 pub async fn join_handler(
     bot: Bot,
     config: Arc<GroupsConfig>,
-    dialogue: GroupDialogue,
     msg: Message,
     users: Vec<User>,
+    pool: SqlitePool,
 ) -> HandlerResult {
     if !config.is_group_allowed(msg.chat.id) {
-        log::error!(
-            "Unknown chat {} with id {}",
-            msg.chat.title().unwrap_or_default(),
+        log::warn!(
+            "unknown chat {} with id {}",
+            msg.chat.title().unwrap_or("N/A"),
             msg.chat.id
         );
 
-        bot.send_message(
-            msg.chat.id,
-            &config.get(msg.chat.id).messages.unauthorized_group,
-        )
-        .await?;
-        bot.leave_chat(msg.chat.id).await?;
+        if let Err(e) = bot
+            .send_message(
+                msg.chat.id,
+                &config.get(msg.chat.id).messages.unauthorized_group,
+            )
+            .await
+        {
+            log::error!(
+                "failed to send message to unauthorized chat {}: {}",
+                msg.chat.id,
+                e
+            );
+        }
+
+        bot.leave_chat(msg.chat.id)
+            .await
+            .context("failed to leave unauthorized chat")?;
 
         return Ok(());
     }
 
     let chat_cfg = config.get(msg.chat.id);
+    let storage = ChatStorage::new(pool, msg.chat.id);
 
     for user in users {
         if user.is_bot {
             continue;
         }
 
-        let (question, answers) = MathQuestion::generate_question::<4>();
+        let (question, answers) = MathQuestion::generate_question::<ANSWERS_COUNT>();
 
         let welcome_msg = chat_cfg.messages.create_welcome_msg(
             &user,
-            &escape(if let Some(ref title) = chat_cfg.custom_chat_name {
-                title
-            } else {
-                msg.chat.title().unwrap_or_default()
-            }),
+            &helpers::get_safe_chat_name(chat_cfg.custom_chat_name.as_deref(), &msg.chat),
             question,
         );
 
         bot.restrict_chat_member(msg.chat.id, user.id, ChatPermissions::empty())
-            .await?;
+            .await
+            .context("failed to restrcit chat member")?;
 
-        let answers_btn = answers
-            .into_iter()
-            .map(|a| {
-                let a = a.to_string();
-                InlineKeyboardButton::callback(a.clone(), a)
-            })
-            .collect();
-
-        let msg_id = bot
+        let message_id = bot
             .send_message(msg.chat.id, welcome_msg)
-            .parse_mode(teloxide::types::ParseMode::Html)
-            .reply_to_message_id(msg.id)
-            .reply_markup(InlineKeyboardMarkup::new([
-                answers_btn,
-                vec![InlineKeyboardButton::callback(
-                    &chat_cfg.messages.admin_approve,
-                    "admin_approve",
-                )],
-            ]))
-            .await?
+            .parse_mode(ParseMode::Html)
+            .reply_parameters(ReplyParameters::new(msg.id).allow_sending_without_reply())
+            .reply_markup(create_answer_buttons(
+                answers,
+                &chat_cfg.messages.admin_approve,
+            ))
+            .await
+            .context("failed to send captcha question to user")?
             .id;
 
-        let dialogue = dialogue
-            .get()
-            .await?
-            .ok_or(anyhow::anyhow!("Can't find the group dialogue in memory"))?;
-        dialogue.insert(msg_id, DialogueData::new(user.id, question));
+        storage
+            .add(JoinCheckData {
+                user_id: user.id,
+                chat_id: msg.chat.id,
+                message_id,
+                question,
+                is_passed: false,
+                expires_at: Utc::now() + chat_cfg.ban_after,
+            })
+            .await
+            .context("failed to add join check data to database")?;
 
         tokio::spawn({
             let bot = bot.clone();
             let ban_after = chat_cfg.ban_after;
+            let config = config.clone();
+            let storage = storage.clone();
+
             async move {
                 tokio::time::sleep(ban_after).await;
-                if let Some((_, data)) = dialogue.remove(&msg_id) {
-                    if !data.passed {
-                        bot.ban_chat_member(msg.chat.id, data.user_id)
-                            .await
-                            .expect("Failed to ban the member after timeout");
-                        bot.delete_message(msg.chat.id, msg_id)
-                            .await
-                            .expect("Failed to delete the message after timeout");
+                match storage.get_and_delete(message_id).await {
+                    Ok(Some(data)) => {
+                        if !data.is_passed {
+                            if let Err(e) = bot.ban_chat_member(msg.chat.id, data.user_id).await {
+                                log::error!("failed to ban the member after timeout: {e}");
+
+                                let chat_cfg = config.get(msg.chat.id);
+                                match bot
+                                    .edit_message_text(
+                                        data.chat_id,
+                                        data.message_id,
+                                        chat_cfg.messages.create_removeing_user_failed(&user),
+                                    )
+                                    .reply_markup(create_delete_message_keyboard(
+                                        &chat_cfg.messages.delete_message,
+                                    ))
+                                    .await
+                                {
+                                    Ok(_) => return,
+                                    Err(e) => log::error!("failed to edit message: {e}"),
+                                }
+                            }
+
+                            if let Err(e) = bot.delete_message(data.chat_id, data.message_id).await
+                            {
+                                log::error!("failed to delete message after timeout: {e}");
+                            }
+                        }
                     }
+                    Ok(None) => {}
+                    Err(e) => log::error!("failed to get join check data from database: {e}"),
                 }
             }
         });
@@ -110,82 +152,120 @@ pub async fn join_handler(
 pub async fn callback_handler(
     bot: Bot,
     config: Arc<GroupsConfig>,
-    dialogue: GroupDialogue,
-    q: CallbackQuery,
+    cbq: CallbackQuery,
+    pool: SqlitePool,
 ) -> HandlerResult {
-    if let (Some(msg), Some(data)) = (q.message, q.data) {
+    if let (Some(MaybeInaccessibleMessage::Regular(msg)), Some(data)) = (cbq.message, cbq.data) {
         if !config.is_group_allowed(msg.chat.id) {
             return Ok(());
         }
 
         let Some(permissions) = bot.get_chat(msg.chat.id).await?.permissions() else {
-            anyhow::bail!("Can't get the group permissions")
+            anyhow::bail!("failed to get the group permissions")
         };
 
         let chat_cfg = config.get(msg.chat.id);
+        let storage = ChatStorage::new(pool, msg.chat.id);
 
-        let dlg_map = dialogue
-            .get()
-            .await?
-            .ok_or(anyhow::anyhow!("Can't find the group dialogue in memory"))?;
+        let Some(join_data) = storage
+            .get(msg.id)
+            .await
+            .context("failed to get join check data from database")?
+        else {
+            anyhow::bail!("can't find the join check data in database");
+        };
 
-        let mut dlg_data = dlg_map
-            .get_mut(&msg.id)
-            .ok_or(anyhow::anyhow!("Can't find the message id in group dialogue"))?;
+        match data.as_str() {
+            ADMIN_APPROVE_CB => {
+                if !helpers::is_allowed_admin(cbq.from.id, &bot, chat_cfg, msg.chat.id).await? {
+                    bot.answer_callback_query(cbq.id)
+                        .text(&chat_cfg.messages.admin_only_error)
+                        .await?;
 
-        if data == "admin_approve" {
-            let admin_allowed = match &config.get(msg.chat.id).custom_admins {
-                Some(list) => list.contains(&q.from.id),
-                None => bot
-                    .get_chat_administrators(msg.chat.id)
-                    .await?
-                    .iter()
-                    .any(|c| c.user.id == q.from.id),
-            };
+                    return Ok(());
+                }
 
-            if !admin_allowed {
-                bot.answer_callback_query(q.id)
-                    .text(&chat_cfg.messages.admin_only_error)
+                bot.answer_callback_query(cbq.id)
+                    .text(&chat_cfg.messages.admin_approved_user)
                     .await?;
-
-                return Ok(());
             }
+            DELETE_KEYBOARD_CB => {
+                if !helpers::is_allowed_admin(cbq.from.id, &bot, chat_cfg, msg.chat.id).await? {
+                    bot.answer_callback_query(cbq.id)
+                        .text(&chat_cfg.messages.admin_only_error)
+                        .await?;
 
-            bot.answer_callback_query(q.id)
-                .text(&chat_cfg.messages.admin_approved_user)
-                .await?;
-        } else {
-            if q.from.id != dlg_data.user_id {
-                bot.answer_callback_query(q.id)
-                    .text(&chat_cfg.messages.user_doesnt_match_error)
-                    .await?;
+                    return Ok(());
+                }
 
-                return Ok(());
-            }
-
-            if !dlg_data.question.validate_answer(data.parse()?) {
-                bot.answer_callback_query(q.id)
-                    .text(&chat_cfg.messages.wrong_answer)
-                    .await?;
-
-                bot.ban_chat_member(msg.chat.id, dlg_data.user_id).await?;
                 bot.delete_message(msg.chat.id, msg.id).await?;
 
                 return Ok(());
             }
+            data => {
+                if cbq.from.id != join_data.user_id {
+                    bot.answer_callback_query(cbq.id)
+                        .text(&chat_cfg.messages.user_doesnt_match_error)
+                        .await?;
 
-            bot.answer_callback_query(q.id)
-                .text(&chat_cfg.messages.correct_answer)
-                .await?;
+                    return Ok(());
+                }
+
+                if !join_data.question.validate_answer(data.parse()?) {
+                    bot.answer_callback_query(cbq.id)
+                        .text(&chat_cfg.messages.wrong_answer)
+                        .await?;
+
+                    bot.ban_chat_member(msg.chat.id, join_data.user_id).await?;
+                    bot.delete_message(msg.chat.id, msg.id).await?;
+
+                    return Ok(());
+                }
+
+                bot.answer_callback_query(cbq.id)
+                    .text(&chat_cfg.messages.correct_answer)
+                    .await?;
+            }
         }
 
-        dlg_data.passed = true;
+        storage
+            .mark_as_passed(join_data.message_id)
+            .await
+            .context("failed to mark join data as passed")?;
 
-        bot.restrict_chat_member(msg.chat.id, dlg_data.user_id, permissions)
+        bot.restrict_chat_member(msg.chat.id, join_data.user_id, permissions)
             .await?;
 
         bot.delete_message(msg.chat.id, msg.id).await?;
     }
 
     Ok(())
+}
+
+fn create_answer_buttons(
+    answers: [u8; ANSWERS_COUNT],
+    admin_approve: &str,
+) -> InlineKeyboardMarkup {
+    let answers = answers
+        .into_iter()
+        .map(|a| {
+            let a = a.to_string();
+            InlineKeyboardButton::callback(a.clone(), a)
+        })
+        .collect();
+
+    InlineKeyboardMarkup::new([
+        answers,
+        vec![InlineKeyboardButton::callback(
+            admin_approve,
+            ADMIN_APPROVE_CB,
+        )],
+    ])
+}
+
+fn create_delete_message_keyboard(delete_message: &str) -> InlineKeyboardMarkup {
+    InlineKeyboardMarkup::new([vec![InlineKeyboardButton::callback(
+        delete_message,
+        DELETE_KEYBOARD_CB,
+    )]])
 }

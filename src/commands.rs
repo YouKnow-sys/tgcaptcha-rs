@@ -3,12 +3,12 @@ use std::{sync::Arc, time::Instant};
 use teloxide::{
     payloads::SendMessageSetters,
     requests::Requester,
-    types::{Me, Message},
+    types::{Me, Message, ReplyParameters},
     utils::command::BotCommands,
     Bot,
 };
 
-use crate::{config::GroupsConfig, HandlerResult};
+use crate::{config::GroupsConfig, helpers, HandlerResult};
 
 #[derive(BotCommands)]
 #[command(rename_rule = "lowercase", description = "Available commands:")]
@@ -31,7 +31,7 @@ pub async fn command_handler(
     text: String,
     instant: Instant,
 ) -> HandlerResult {
-    let Some(user) = msg.from() else {
+    let Some(user) = msg.from else {
         return Ok(());
     };
 
@@ -39,16 +39,7 @@ pub async fn command_handler(
         return Ok(());
     }
 
-    let is_allowed = match &config.get(msg.chat.id).custom_admins {
-        Some(list) => list.contains(&user.id),
-        None => bot
-            .get_chat_administrators(msg.chat.id)
-            .await?
-            .iter()
-            .any(|c| c.user.id == user.id),
-    };
-
-    if !is_allowed {
+    if !helpers::is_allowed_admin(user.id, &bot, config.get(msg.chat.id), msg.chat.id).await? {
         return Ok(());
     }
 
@@ -59,12 +50,12 @@ pub async fn command_handler(
     match command {
         Command::Help => {
             bot.send_message(msg.chat.id, Command::descriptions().to_string())
-                .reply_to_message_id(msg.id)
+                .reply_parameters(ReplyParameters::new(msg.id).allow_sending_without_reply())
                 .await?;
         }
         Command::Status => {
-            bot.send_message(msg.chat.id, "I'm Up and running!")
-                .reply_to_message_id(msg.id)
+            bot.send_message(msg.chat.id, "I'm up and running!")
+                .reply_parameters(ReplyParameters::new(msg.id).allow_sending_without_reply())
                 .await?;
         }
         Command::Uptime => {
@@ -75,7 +66,7 @@ pub async fn command_handler(
                     humantime::format_duration(instant.elapsed())
                 ),
             )
-            .reply_to_message_id(msg.id)
+            .reply_parameters(ReplyParameters::new(msg.id).allow_sending_without_reply())
             .await?;
         }
         Command::SourceCode => {
@@ -86,7 +77,7 @@ pub async fn command_handler(
                     env!("CARGO_PKG_REPOSITORY")
                 ),
             )
-            .reply_to_message_id(msg.id)
+            .reply_parameters(ReplyParameters::new(msg.id).allow_sending_without_reply())
             .await?;
         }
     }

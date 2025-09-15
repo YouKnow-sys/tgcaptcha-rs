@@ -1,33 +1,15 @@
-use std::{sync::Arc, time::Instant};
+use std::sync::Arc;
+use std::time::Instant;
 
-use dashmap::DashMap;
-use join_check::MathQuestion;
-use teloxide::{dispatching::dialogue::InMemStorage, prelude::*, types::MessageId};
+use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
+use teloxide::prelude::*;
 
 mod commands;
 mod config;
+mod helpers;
 mod join_check;
 
 type HandlerResult = anyhow::Result<()>;
-type DialogueDataType = Arc<DashMap<MessageId, DialogueData>>;
-type GroupDialogue = Dialogue<DialogueDataType, InMemStorage<DialogueDataType>>;
-
-#[derive(Clone)]
-pub struct DialogueData {
-    user_id: UserId,
-    question: MathQuestion,
-    passed: bool,
-}
-
-impl DialogueData {
-    fn new(user_id: UserId, question: MathQuestion) -> Self {
-        Self {
-            user_id,
-            question,
-            passed: false,
-        }
-    }
-}
 
 #[tokio::main]
 async fn main() {
@@ -38,10 +20,18 @@ async fn main() {
 
     let config = config::BotConfig::try_read().expect("Failed to read config");
 
+    let pool = connect_database(&config.database_path)
+        .await
+        .expect("failed to connect to database");
+
     let bot = Bot::new(config.bot_token);
 
+    tokio::spawn(join_check::storage::delete_expired_task(
+        bot.clone(),
+        pool.clone(),
+    ));
+
     let handler = dptree::entry()
-        .enter_dialogue::<Update, InMemStorage<DialogueDataType>, DialogueDataType>()
         .branch(
             Update::filter_message()
                 .branch(Message::filter_new_chat_members().endpoint(join_check::join_handler))
@@ -54,10 +44,22 @@ async fn main() {
         .dependencies(dptree::deps![
             bot_start_time,
             Arc::new(config.groups_config),
-            InMemStorage::<DialogueDataType>::new()
+            pool
         ])
         .enable_ctrlc_handler()
         .build()
         .dispatch()
         .await;
+}
+
+async fn connect_database(path: &str) -> Result<SqlitePool, sqlx::Error> {
+    let options = SqliteConnectOptions::new()
+        .filename(path)
+        .create_if_missing(true);
+
+    let pool = SqlitePool::connect_with(options).await?;
+
+    sqlx::migrate!().run(&pool).await?;
+
+    Ok(pool)
 }

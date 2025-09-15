@@ -1,6 +1,9 @@
 # You can put the bot token directly in config or you can set it in env as TGCAPTCHA_BOT_TOKEN
 # bot_token = "..."
 
+# Sqlite database path
+# database_path = "..."
+
 # list of allowed groups, if used bot will work only in these groups
 # allowed_groups = []
 
@@ -28,4 +31,8 @@ messages.wrong_answer = "❌ Your answer was wrong, you will be banned from grou
 messages.admin_approved_user = "✅ You approved this user"
 messages.correct_answer = "✅ Your answer was correct! Now you can chat in the group"
 messages.unauthorized_group = "❌ This group isn't authorized. Goodbye!"
-
+messages.removeing_user_failed = """
+Removing user {TAGUSER} failed due to an error.
+Manual intervention required.
+"""
+messages.delete_message = "🗑 Delete message"

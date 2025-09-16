@@ -8,8 +8,8 @@ Bot written fully in Rust 🦀.
 
 ## How to build and use:
 1. Clone the bot and build it using `cargo build --release`.
-2. Before running the bot, set the `bot_token` in the `Config.toml` file
-   or use the `TGCAPTCHA_BOT_TOKEN` environment value.
+2. Before running the bot, set `bot_token` and `database_path` in the `Config.toml` file
+   or set `TGCAPTCHA_BOT_TOKEN` and `TGCAPTCHA_DATABASE_PATH` environment variables.
 3. Customize the `Config.toml` file according to your preferences. 
    You can modify various aspects of the bot,
    such as restricting its functionality to specific groups

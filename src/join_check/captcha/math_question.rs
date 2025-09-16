@@ -12,7 +12,7 @@ const MIN: u8 = 1;
 const MAX: u8 = 10;
 const MAX_ANSWER: u8 = 100;
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Operator {
     Add,
     Sub,
@@ -60,7 +60,7 @@ impl Display for Operator {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct MathQuestion {
     pub lhs: u8,
     pub operator: Operator,

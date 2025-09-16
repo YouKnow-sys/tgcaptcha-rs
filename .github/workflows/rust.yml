@@ -2,9 +2,9 @@ name: Rust CI
 
 on:
   push:
-    branches: [ "master" ]
+    branches: ["master"]
   pull_request:
-    branches: [ "master" ]
+    branches: ["master"]
 
 env:
   CARGO_TERM_COLOR: always
@@ -28,6 +28,11 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: "true"
+
       - name: Install cargo-audit
         run: cargo install cargo-audit
 
@@ -39,10 +44,10 @@ jobs:
 
       - name: Run tests
         run: cargo test --verbose
-        
+
       - name: Clippy
         run: cargo clippy --verbose -- -D warnings
-        
+
       - name: Audit
         run: cargo audit --deny warnings --ignore RUSTSEC-2023-0071
         # RUSTSEC-2023-0071: this is a sqlx-mysql vulnerability; we don't even use mysql...

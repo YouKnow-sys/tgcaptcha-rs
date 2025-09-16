@@ -4,6 +4,7 @@ use teloxide::types::{ChatId, MessageId, UserId};
 
 use crate::join_check::captcha::{MathQuestion, Operator};
 
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct JoinCheckData {
     pub user_id: UserId,
     pub chat_id: ChatId,

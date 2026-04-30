@@ -43,7 +43,7 @@ jobs:
           key: ${{ matrix.target }}
           cache-on-failure: "true"
 
-      - uses: taiki-e/upload-rust-binary-action@v1.30
+      - uses: taiki-e/upload-rust-binary-action@v1
         with:
           bin: tgcaptcha-rs
           target: ${{ matrix.target }}

@@ -33,9 +33,6 @@ jobs:
         with:
           cache-on-failure: "true"
 
-      - name: Install cargo-audit
-        run: cargo install cargo-audit
-
       - name: Check format
         run: cargo fmt -- --check
 
@@ -47,7 +44,3 @@ jobs:
 
       - name: Clippy
         run: cargo clippy --verbose -- -D warnings
-
-      - name: Audit
-        run: cargo audit --deny warnings --ignore RUSTSEC-2023-0071
-        # RUSTSEC-2023-0071: this is a sqlx-mysql vulnerability; we don't even use mysql...

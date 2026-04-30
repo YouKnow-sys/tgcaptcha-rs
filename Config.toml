@@ -19,6 +19,9 @@
 # set the time that it'll take for user to get banned if they dont answer the captcha
 ban_after = "5m"
 
+# whatever to remove user join message in group
+remove_join_messages = true
+
 # set and modify messages
 messages.new_user_template = """
 Hello {TAGUSER}.

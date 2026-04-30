@@ -32,7 +32,7 @@ impl BotConfig {
 #[serde_as]
 #[derive(Default, Deserialize)]
 pub struct GroupsConfig {
-    /// List of allowed groups, if `None` bot will allow all groups
+    /// List of allowed groups, if empty bot will allow all groups
     #[serde(default)]
     pub allowed_groups: Vec<ChatId>,
     #[serde(default)]
@@ -64,6 +64,8 @@ pub struct GroupSettings {
     pub ban_after: Duration,
     #[serde(default)]
     pub messages: MessagesText,
+    #[serde(default)]
+    pub remove_join_messages: bool,
 }
 
 impl Default for GroupSettings {
@@ -73,6 +75,7 @@ impl Default for GroupSettings {
             custom_admins: None,
             ban_after: Duration::from_secs(60 * 5),
             messages: MessagesText::default(),
+            remove_join_messages: true,
         }
     }
 }

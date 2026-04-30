@@ -3,7 +3,7 @@ use std::fmt::Display;
 use rand::{
     distr::Uniform,
     seq::{IndexedRandom, SliceRandom},
-    Rng,
+    RngExt,
 };
 
 pub type Answer = u8;

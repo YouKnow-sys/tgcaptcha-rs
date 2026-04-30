@@ -13,10 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Create new release
-        uses: taiki-e/create-gh-release-action@v1.8.0
+        uses: taiki-e/create-gh-release-action@v1.11
         with:
           branch: master
           draft: false
@@ -31,7 +31,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Update Linux dependencies
         run: sudo apt update
@@ -43,7 +43,7 @@ jobs:
           key: ${{ matrix.target }}
           cache-on-failure: "true"
 
-      - uses: taiki-e/upload-rust-binary-action@v1.12.0
+      - uses: taiki-e/upload-rust-binary-action@v1.30
         with:
           bin: tgcaptcha-rs
           target: ${{ matrix.target }}

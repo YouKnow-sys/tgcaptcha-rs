@@ -1,32 +1,34 @@
 [package]
 name = "tgcaptcha-rs"
-authors = ["Saeid Ghafari <saeid025@yahoo.com>"]
-version = "0.2.1"
+version = "0.2.2"
 edition = "2021"
+description = "A Telegram bot that validates new users that enter to the supergroup or group with a simple math question."
+readme = "README.md"
 repository = "https://github.com/YouKnow-sys/tgcaptcha-rs"
 license = "MIT"
-description = "A Telegram bot that validates new users that enter to the supergroup or group with a simple math question."
-keywords = ["telegram", "bot", "captcha", "group", "supergroup"]
-readme = "README.md"
+keywords = ["bot", "captcha", "group", "supergroup", "telegram"]
 
 [dependencies]
-log = { version = "0.4" }
-pretty_env_logger = { version = "0.5" }
-rand = { version = "0.9" }
-serde = { version = "1.0", features = ["derive"] }
-teloxide = { version = "0.17", features = ["macros"] }
-tokio = { version = "1.47", features = ["macros", "rt-multi-thread"] }
-config = { version = "0.15", features = ["convert-case", "toml"], default-features = false }
+anyhow = "1"
+chrono = { version = "0.4", default-features = false, features = ["now", "std"] }
+config = { version = "0.15", default-features = false, features = [
+  "convert-case",
+  "toml"
+] }
 humantime = { version = "2.3" }
 humantime-serde = { version = "1.1" }
-serde_with = { version = "3.14" }
-anyhow = "1"
-sqlx = { version = "0.8", features = ["runtime-tokio", "tls-rustls", "sqlite"] }
-chrono = { version = "0.4", default-features = false, features = ["std", "now"] }
+log = { version = "0.4" }
+pretty_env_logger = { version = "0.5" }
+rand = { version = "0.10" }
+serde = { version = "1.0", features = ["derive"] }
+serde_with = { version = "3.18" }
+sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite", "tls-rustls"] }
+teloxide = { version = "0.17", features = ["macros"] }
+tokio = { version = "1.52", features = ["macros", "rt-multi-thread"] }
 
 [profile.release]
-codegen-units = 1
-lto = "fat"
 opt-level = "s"
 strip = true
+lto = "fat"
 panic = "abort"
+codegen-units = 1

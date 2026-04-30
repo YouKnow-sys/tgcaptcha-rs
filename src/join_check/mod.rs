@@ -61,6 +61,12 @@ pub async fn join_handler(
     let chat_cfg = config.get(msg.chat.id);
     let storage = ChatStorage::new(pool, msg.chat.id);
 
+    if chat_cfg.remove_join_messages {
+        if let Err(e) = bot.delete_message(msg.chat.id, msg.id).await {
+            log::warn!("failed to delete join service message: {e}");
+        }
+    }
+
     for user in users {
         if user.is_bot {
             continue;
